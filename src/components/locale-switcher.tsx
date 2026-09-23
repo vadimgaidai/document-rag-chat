@@ -1,5 +1,6 @@
 import { Check, Languages } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,45 +8,52 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
+import { useLocaleOptions } from "@/hooks/use-locale-options"
 import { m } from "@/paraglide/messages"
-import { getLocale, locales, setLocale } from "@/paraglide/runtime"
 
-/**
- * Switches the active locale. The locale lives in the URL, so `setLocale`
- * navigates to the localized address; the server resolves it again on the next
- * request and SSR keeps matching the client.
- */
-export const LocaleSwitcher = () => {
-  const currentLocale = getLocale()
+interface ILocaleSwitcherProps {
+  /** `"sidebar"` renders inside a `Sidebar`/`SidebarProvider` context; `"inline"` is a plain button, for contexts without one. */
+  variant?: "sidebar" | "inline"
+}
+
+export const LocaleSwitcher = ({ variant = "sidebar" }: ILocaleSwitcherProps) => {
+  const { currentLocale, locales, selectLocale } = useLocaleOptions()
+
+  const dropdown = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        {variant === "sidebar" ? (
+          <SidebarMenuButton tooltip={m.language_label()}>
+            <Languages aria-hidden="true" />
+            <span>{currentLocale.toUpperCase()}</span>
+          </SidebarMenuButton>
+        ) : (
+          <Button aria-label={m.language_label()} size="sm" variant="ghost">
+            <Languages aria-hidden="true" />
+            {currentLocale.toUpperCase()}
+          </Button>
+        )}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align={variant === "sidebar" ? "start" : "end"}
+        className={variant === "sidebar" ? "min-w-40" : undefined}
+        side={variant === "sidebar" ? "top" : undefined}
+      >
+        {locales.map((locale) => (
+          <DropdownMenuItem key={locale} onSelect={() => selectLocale(locale)}>
+            {locale.toUpperCase()}
+            {locale === currentLocale && <Check aria-hidden="true" className="ml-auto size-4" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
+  if (variant === "inline") return dropdown
 
   return (
     <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton tooltip={m.language_label()}>
-              <Languages aria-hidden="true" />
-              <span>{currentLocale.toUpperCase()}</span>
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-40" side="top">
-            {locales.map((locale) => (
-              <DropdownMenuItem
-                key={locale}
-                onSelect={() => {
-                  // Navigates away, so there is nothing left to await here.
-                  void setLocale(locale)
-                }}
-              >
-                {locale.toUpperCase()}
-                {locale === currentLocale && (
-                  <Check aria-hidden="true" className="ml-auto size-4" />
-                )}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
+      <SidebarMenuItem>{dropdown}</SidebarMenuItem>
     </SidebarMenu>
   )
 }

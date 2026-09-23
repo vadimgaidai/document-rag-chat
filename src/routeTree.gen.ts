@@ -9,75 +9,87 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppRouteImport } from './routes/_app'
-import { Route as AppChatRouteImport } from './routes/_app.chat'
-import { Route as AppKnowledgeBaseRouteImport } from './routes/_app.knowledge-base'
+import { Route as AppRouteRouteImport } from './routes/_app/route'
+import { Route as LandingRouteRouteImport } from './routes/_landing/route'
+import { Route as AppChatRouteImport } from './routes/_app/chat'
+import { Route as AppKnowledgeBaseRouteImport } from './routes/_app/knowledge-base'
+import { Route as LandingIndexRouteImport } from './routes/_landing/index'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AppRouteRoute = AppRouteRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppRoute = AppRouteImport.update({
-  id: '/_app',
+const LandingRouteRoute = LandingRouteRouteImport.update({
+  id: '/_landing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppChatRoute = AppChatRouteImport.update({
   id: '/chat',
   path: '/chat',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AppRouteRoute,
 } as any)
 const AppKnowledgeBaseRoute = AppKnowledgeBaseRouteImport.update({
   id: '/knowledge-base',
   path: '/knowledge-base',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const LandingIndexRoute = LandingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LandingRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof LandingIndexRoute
   '/chat': typeof AppChatRoute
   '/knowledge-base': typeof AppKnowledgeBaseRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/': typeof LandingIndexRoute
   '/chat': typeof AppChatRoute
   '/knowledge-base': typeof AppKnowledgeBaseRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/_app': typeof AppRouteWithChildren
+  '/_app': typeof AppRouteRouteWithChildren
+  '/_landing': typeof LandingRouteRouteWithChildren
   '/_app/chat': typeof AppChatRoute
   '/_app/knowledge-base': typeof AppKnowledgeBaseRoute
+  '/_landing/': typeof LandingIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths: '/' | '/chat' | '/knowledge-base'
   fileRoutesByTo: FileRoutesByTo
   to: '/' | '/chat' | '/knowledge-base'
-  id: '__root__' | '/' | '/_app' | '/_app/chat' | '/_app/knowledge-base'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/_landing'
+    | '/_app/chat'
+    | '/_app/knowledge-base'
+    | '/_landing/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AppRoute: typeof AppRouteWithChildren
+  AppRouteRoute: typeof AppRouteRouteWithChildren
+  LandingRouteRoute: typeof LandingRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_app': {
       id: '/_app'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof AppRouteImport
+      preLoaderRoute: typeof AppRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_landing': {
+      id: '/_landing'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof LandingRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/chat': {
@@ -85,33 +97,54 @@ declare module '@tanstack/react-router' {
       path: '/chat'
       fullPath: '/chat'
       preLoaderRoute: typeof AppChatRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/knowledge-base': {
       id: '/_app/knowledge-base'
       path: '/knowledge-base'
       fullPath: '/knowledge-base'
       preLoaderRoute: typeof AppKnowledgeBaseRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_landing/': {
+      id: '/_landing/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof LandingIndexRouteImport
+      parentRoute: typeof LandingRouteRoute
     }
   }
 }
 
-interface AppRouteChildren {
+interface AppRouteRouteChildren {
   AppChatRoute: typeof AppChatRoute
   AppKnowledgeBaseRoute: typeof AppKnowledgeBaseRoute
 }
 
-const AppRouteChildren: AppRouteChildren = {
+const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppChatRoute: AppChatRoute,
   AppKnowledgeBaseRoute: AppKnowledgeBaseRoute,
 }
 
-const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
+  AppRouteRouteChildren,
+)
+
+interface LandingRouteRouteChildren {
+  LandingIndexRoute: typeof LandingIndexRoute
+}
+
+const LandingRouteRouteChildren: LandingRouteRouteChildren = {
+  LandingIndexRoute: LandingIndexRoute,
+}
+
+const LandingRouteRouteWithChildren = LandingRouteRoute._addFileChildren(
+  LandingRouteRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AppRoute: AppRouteWithChildren,
+  AppRouteRoute: AppRouteRouteWithChildren,
+  LandingRouteRoute: LandingRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

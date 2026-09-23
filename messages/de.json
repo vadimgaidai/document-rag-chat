@@ -8,5 +8,12 @@
   "chat_title": "Chat",
   "chat_subtitle": "Retrieval, der Modell-Endpunkt und gestreamte Antworten sind noch nicht gebaut.",
   "chat_empty": "Fragen und Antworten mit ihren Quellen erscheinen hier.",
-  "language_label": "Sprache"
+  "language_label": "Sprache",
+  "theme_toggle_label": "Design wechseln",
+  "landing_hero_heading": "Chatten mit der eigenen Wissensdatenbank.",
+  "landing_hero_subheading": "Document Workbench lädt Dokumente hoch, indexiert und durchsucht sie und beantwortet Fragen mit Quellenangaben direkt daraus.",
+  "landing_knowledge_base_description": "Dokumente hochladen und den Index durchsuchen.",
+  "landing_knowledge_base_cta": "Wissensdatenbank öffnen",
+  "landing_chat_description": "Fragen stellen und Antworten aus den Dokumenten erhalten.",
+  "landing_chat_cta": "Chat öffnen"
 }

@@ -5,6 +5,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 
 import { m } from "@/paraglide/messages"
 import { getLocale } from "@/paraglide/runtime"
+import { ThemeProvider } from "@/providers/theme-provider"
 
 import appCss from "../styles.css?url"
 
@@ -16,12 +17,12 @@ interface IRouterContext {
 }
 
 const RootDocument = ({ children }: { children: ReactNode }) => (
-  <html lang={getLocale()}>
+  <html lang={getLocale()} suppressHydrationWarning>
     <head>
       <HeadContent />
     </head>
     <body>
-      {children}
+      <ThemeProvider>{children}</ThemeProvider>
       <TanStackDevtools
         config={{ position: "bottom-right" }}
         plugins={[

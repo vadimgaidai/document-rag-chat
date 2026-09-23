@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router"
 
-import { NAV_ITEMS } from "@/components/nav/nav-items"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
+import { NAV_ITEMS } from "@/features/app/nav/nav-items"
 
 export const NavMain = () => (
   <SidebarMenu>

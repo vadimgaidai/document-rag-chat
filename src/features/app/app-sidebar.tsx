@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router"
 import { Bot } from "lucide-react"
 
 import { LocaleSwitcher } from "@/components/locale-switcher"
-import { NavMain } from "@/components/nav/nav-main"
 import {
   Sidebar,
   SidebarContent,
@@ -12,6 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { NavMain } from "@/features/app/nav/nav-main"
 import { ROUTES } from "@/lib/routes"
 import { m } from "@/paraglide/messages"
 

@@ -8,5 +8,12 @@
   "chat_title": "Chat",
   "chat_subtitle": "Retrieval, the model endpoint and streaming answers are not built yet.",
   "chat_empty": "Questions and answers with their sources will appear here.",
-  "language_label": "Language"
+  "language_label": "Language",
+  "theme_toggle_label": "Toggle theme",
+  "landing_hero_heading": "Chat with your knowledge base.",
+  "landing_hero_subheading": "Document Workbench uploads, indexes and searches your documents, then answers your questions with sources pulled straight from them.",
+  "landing_knowledge_base_description": "Upload documents and browse what's been indexed.",
+  "landing_knowledge_base_cta": "Open Knowledge Base",
+  "landing_chat_description": "Ask questions and get answers grounded in your documents.",
+  "landing_chat_cta": "Open Chat"
 }
