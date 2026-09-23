@@ -195,6 +195,15 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
   },
 
+  {
+    files: ["src/routes/**/*.{ts,tsx}"],
+    rules: {
+      // TanStack Router's redirect signal is a `Response`, not an `Error` — the
+      // framework's own `throw redirect(...)` convention outranks this rule.
+      "@typescript-eslint/only-throw-error": "off",
+    },
+  },
+
   // ---------------------------------------------------------------------------
   // Server-only code and future worker entry points. Never bundled for the
   // browser, so server logging is expected here.
