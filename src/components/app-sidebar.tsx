@@ -23,7 +23,7 @@ export const AppSidebar = () => (
           <SidebarMenuButton asChild tooltip={m.app_title()}>
             <Link aria-label={m.app_title()} to={ROUTES.home}>
               <Bot aria-hidden="true" className="size-6!" />
-              <span className="text-base font-semibold">Acme Inc.</span>
+              <span className="text-base font-semibold">Docs Hub.</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
