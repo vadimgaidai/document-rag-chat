@@ -1,0 +1,12 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "app_title": "Document Workbench",
+  "app_intro": "A personal workspace for exploring document search and AI chat. This is the project skeleton — the two panels below mark where the document library and the chat will live.",
+  "documents_title": "Documents",
+  "documents_subtitle": "Upload, indexing and the source viewer are not built yet.",
+  "documents_empty": "Uploaded documents will be listed here once the ingestion pipeline exists.",
+  "chat_title": "Chat",
+  "chat_subtitle": "Retrieval, the model endpoint and streaming answers are not built yet.",
+  "chat_empty": "Questions and answers with their sources will appear here.",
+  "language_label": "Language"
+}

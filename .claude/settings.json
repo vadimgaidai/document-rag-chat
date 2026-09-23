@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "vadimgaidai": {
+      "source": {
+        "source": "github",
+        "repo": "vadimgaidai/react-feature-kit"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "react-feature-workflow@vadimgaidai": true
+  }
+}
