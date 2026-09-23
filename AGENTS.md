@@ -31,22 +31,26 @@ Stack, install steps and current status: [README](./README.md).
 
 Folders are created together with real content. Do not pre-create empty modules, placeholder services, `index.ts` barrels or `.gitkeep` files.
 
-| Path                      | Purpose                                            |
-| ------------------------- | -------------------------------------------------- |
-| `src/routes/`             | Pages and Start HTTP API routes                    |
-| `src/features/chat/`      | Chat UI and its local hooks                        |
-| `src/features/documents/` | Document UI, queries and mutations                 |
-| `src/components/ui/`      | Individual shadcn components                       |
-| `src/lib/query/`          | QueryClient factory and query key factory          |
-| `src/lib/api/`            | Small HTTP client, once code actually calls an API |
-| `src/lib/utils.ts`        | `cn`                                               |
-| `src/server/`             | Server-side application logic and AWS integrations |
-| `src/workers/`            | Ingestion and DLQ entry points                     |
-| `src/contracts.ts`        | Shared API schemas, once real APIs exist           |
-| `infra/`                  | AWS deployment configuration                       |
-| `eval/`                   | Fixtures, questions, eval and results              |
+| Path | Purpose |
+| --- | --- |
+| `src/routes/` | Pages and Start HTTP API routes |
+| `src/features/app/` | The `_app` dashboard layout's own UI (sidebar, header, nav) — not reused by `_landing` |
+| `src/features/landing/` | The `_landing` layout's own UI — not reused by `_app` |
+| `src/features/chat/` | Chat UI and its local hooks |
+| `src/features/documents/` | Document UI, queries and mutations |
+| `src/components/` | UI actually shared across more than one feature/layout (e.g. a locale switcher, a theme toggle) |
+| `src/components/ui/` | Individual shadcn components |
+| `src/providers/` | Global app-level providers (theme, etc.) wrapped around the whole app in `__root.tsx` — not "components" |
+| `src/lib/query/` | QueryClient factory and query key factory |
+| `src/lib/api/` | Small HTTP client, once code actually calls an API |
+| `src/lib/utils.ts` | `cn` |
+| `src/server/` | Server-side application logic and AWS integrations |
+| `src/workers/` | Ingestion and DLQ entry points |
+| `src/contracts.ts` | Shared API schemas, once real APIs exist |
+| `infra/` | AWS deployment configuration |
+| `eval/` | Fixtures, questions, eval and results |
 
-Inside a small feature, files sit next to each other; subfolders appear only when the feature actually grows. Local hooks stay next to their feature. UI is imported from the component file directly (`@/components/ui/card`), never from a barrel. The `@/*` alias maps to `src/*`.
+A feature under `src/features/` is anything that belongs to one particular layout or page and nothing else — a dashboard shell and a landing page count, same as a domain feature like chat or documents. `src/components/` holds only what's genuinely cross-cutting; when a component turns out to be used by just one feature, it moves into that feature instead of staying "global" by default. Inside a small feature, files sit next to each other; subfolders appear only when the feature actually grows. Local hooks stay next to their feature. UI is imported from the component file directly (`@/components/ui/card`), never from a barrel. The `@/*` alias maps to `src/*`.
 
 ## Client / server boundary
 
