@@ -2,7 +2,7 @@ import {
   API_ERROR_CODE,
   DOCUMENT_STATUS,
   documentSchema,
-  MAX_FILES,
+  MAX_LIBRARY_FILES,
   UPLOAD_CONTENT_TYPE,
   UPLOAD_URL_TTL_SECONDS,
 } from "@/contracts"
@@ -25,11 +25,11 @@ export class DocumentsService {
   constructor(private readonly s3: S3Service) {}
 
   async createUpload({ name, sizeBytes }: TUploadRequest): Promise<TCreateUploadResult> {
-    if ((await this.s3.countKeys(STATUS_PREFIX)) >= MAX_FILES) {
+    if ((await this.s3.countKeys(STATUS_PREFIX)) >= MAX_LIBRARY_FILES) {
       return {
         ok: false,
         code: API_ERROR_CODE.limitReached,
-        message: `The library already holds ${String(MAX_FILES)} documents.`,
+        message: `The library already holds ${String(MAX_LIBRARY_FILES)} documents.`,
       }
     }
 

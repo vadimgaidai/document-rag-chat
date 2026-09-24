@@ -130,7 +130,7 @@ The costs are real, and they are what would push this to DynamoDB:
 - No atomic counter, which is why the file-count limit is best effort rather than a reservation.
 - No TTL, no secondary index, no transaction spanning two documents.
 
-At the stated limits — 5 files, 5 MB each, one shared environment without accounts — none of those bite, and the bucket that already stores the file stores its state without a second service, a second IAM surface or a second bill. The point at which this stops being true is a corpus large enough that listing becomes a page-load cost, or per-user libraries, or needing to select by status.
+At the stated limits — 30 documents in the library, 5 per upload, 5 MB each, one shared environment without accounts — none of those bite, and the bucket that already stores the file stores its state without a second service, a second IAM surface or a second bill. The point at which this stops being true is a corpus large enough that listing becomes a page-load cost, or per-user libraries, or needing to select by status.
 
 ## Rendering
 

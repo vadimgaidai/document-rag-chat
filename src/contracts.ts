@@ -4,7 +4,8 @@ import { z } from "zod"
 // client, so nothing but zod may be imported here.
 
 export const MAX_FILE_BYTES = 5 * 1024 * 1024
-export const MAX_FILES = 5
+export const MAX_FILES_PER_UPLOAD = 5
+export const MAX_LIBRARY_FILES = 30
 export const ALLOWED_EXTENSION = ".md"
 export const UPLOAD_CONTENT_TYPE = "text/markdown"
 export const UPLOAD_URL_TTL_SECONDS = 300

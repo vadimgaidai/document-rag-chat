@@ -1,6 +1,11 @@
 import { useState } from "react"
 
-import { API_ERROR_CODE, MAX_FILE_BYTES, MAX_FILES } from "@/contracts"
+import {
+  API_ERROR_CODE,
+  MAX_FILE_BYTES,
+  MAX_FILES_PER_UPLOAD,
+  MAX_LIBRARY_FILES,
+} from "@/contracts"
 import { useUploadDocument } from "@/features/documents/api/documents.mutations"
 import { UPLOAD_ITEM_STATE } from "@/features/documents/constants"
 import type { TFileRejection, TUploadItem, TUploadQueue } from "@/features/documents/types"
@@ -23,7 +28,7 @@ const rejectionMessage = (rejection: TFileRejection) => {
     return m.documents_error_size({ name, maxMb: MAX_FILE_MB })
   }
   if (codes.includes(DROPZONE_ERROR.tooMany)) {
-    return m.documents_error_limit({ name, maxFiles: MAX_FILES })
+    return m.documents_error_batch({ name, maxFiles: MAX_FILES_PER_UPLOAD })
   }
   if (codes.includes(DROPZONE_ERROR.invalidType)) {
     return m.documents_error_type({ name })
@@ -34,7 +39,7 @@ const rejectionMessage = (rejection: TFileRejection) => {
 const uploadErrorMessage = (error: unknown, name: string) => {
   if (error instanceof ApiError) {
     if (error.code === API_ERROR_CODE.limitReached) {
-      return m.documents_error_limit({ name, maxFiles: MAX_FILES })
+      return m.documents_error_library_full({ name, maxLibrary: MAX_LIBRARY_FILES })
     }
     if (error.code === API_ERROR_CODE.tooLarge) {
       return m.documents_error_size({ name, maxMb: MAX_FILE_MB })
@@ -64,7 +69,7 @@ export const useUploadQueue = (): TUploadQueue => {
             patch(item.id, { progress })
           },
         })
-        // Done here means gone from here: the row now belongs to the table.
+
         setItems((current) => current.filter((entry) => entry.id !== item.id))
       } catch (error) {
         patch(item.id, {
@@ -96,7 +101,6 @@ export const useUploadQueue = (): TUploadQueue => {
       canRetry: false,
     }))
 
-    // Added to what is already there: the dialog stays open across selections.
     setItems((current) => [...current, ...refused, ...queued])
     void run(queued)
   }

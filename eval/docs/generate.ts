@@ -2,14 +2,18 @@
 // markdown documents plus `manifest.json`, written next to this file.
 //
 //     pnpm eval:docs
+//     pnpm eval:docs --stress   # also writes 06-stress.md, just under the upload limit
 //
 // Everything here is deterministic — a seeded PRNG, no dates read from the
 // clock, no network — so a second run leaves `git status` clean. B3's ingestion
 // drills, B5's smoke test and B8's eval all read these files and the manifest
-// rather than shipping corpora of their own.
+// rather than shipping corpora of their own. The stress document is outside the
+// corpus and the manifest: it exists to time ingestion at the size limit.
 
 import { writeFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
+
+import { MAX_FILE_BYTES } from "@/contracts"
 
 import {
   CONFLICTS,
@@ -50,6 +54,11 @@ const BLOCKS_PER_SECTION: readonly (readonly [number, number])[] = [
   [2, 5],
   [12, 20],
 ]
+
+const STRESS_FLAG = "--stress"
+const STRESS_FILE = "06-stress.md"
+const STRESS_WORD_TARGET = 800_000
+const STRESS_SEED_OFFSET = 6 * 7_919
 
 // ---------------------------------------------------------------------------
 // Deterministic randomness
@@ -495,4 +504,27 @@ writeFileSync(
 )
 
 console.log(`manifest.json       ${String(facts.length).padStart(9)} facts`)
+
+if (process.argv.includes(STRESS_FLAG)) {
+  const docIndex = PACKS.length - 1
+  const random = new Random(SEED + STRESS_SEED_OFFSET)
+  const blocks = buildBlocks(random, PACKS[docIndex], STRESS_WORD_TARGET, docIndex)
+  const { text, words, maxBlockChars } = render(blocks)
+  const bytes = Buffer.byteLength(text, "utf8")
+
+  if (maxBlockChars > MAX_BLOCK_CHARS) {
+    throw new Error(
+      `${STRESS_FILE}: a block is ${maxBlockChars} characters, over the ${MAX_BLOCK_CHARS} limit`,
+    )
+  }
+  if (bytes > MAX_FILE_BYTES) {
+    throw new Error(`${STRESS_FILE}: ${bytes} bytes is over the ${MAX_FILE_BYTES} upload limit`)
+  }
+
+  writeFileSync(new URL(STRESS_FILE, import.meta.url), text, "utf8")
+  console.log(
+    `${STRESS_FILE.padEnd(20)} ${words.toLocaleString("en-US").padStart(9)} words, ${(bytes / (1024 * 1024)).toFixed(2)} MB`,
+  )
+}
+
 console.log(`written to ${outputDirectory}`)

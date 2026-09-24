@@ -12,7 +12,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
-import { MAX_FILE_BYTES, MAX_FILES, UPLOAD_CONTENT_TYPE } from "@/contracts"
+import {
+  MAX_FILE_BYTES,
+  MAX_FILES_PER_UPLOAD,
+  MAX_LIBRARY_FILES,
+  UPLOAD_CONTENT_TYPE,
+} from "@/contracts"
 import { UPLOAD_ITEM_STATE } from "@/features/documents/constants"
 import { useUploadQueue } from "@/features/documents/hooks/use-upload-queue"
 import type { TUploadItem } from "@/features/documents/types"
@@ -71,7 +76,7 @@ export const UploadDialog = () => {
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     accept: { [UPLOAD_CONTENT_TYPE]: [".md"] },
     maxSize: MAX_FILE_BYTES,
-    maxFiles: MAX_FILES,
+    maxFiles: MAX_FILES_PER_UPLOAD,
     disabled: isUploading,
     noClick: true,
     noKeyboard: true,
@@ -103,7 +108,8 @@ export const UploadDialog = () => {
           <DialogDescription>
             {m.knowledge_base_limits({
               maxMb: MAX_FILE_BYTES / (1024 * 1024),
-              maxFiles: MAX_FILES,
+              maxFiles: MAX_FILES_PER_UPLOAD,
+              maxLibrary: MAX_LIBRARY_FILES,
             })}
           </DialogDescription>
         </DialogHeader>
