@@ -4,8 +4,6 @@
 
 Upload Markdown documents and ask questions about them. Every answer cites the passages it rests on, and each citation opens the original at those lines. The interface is called **Document Workbench**.
 
-Demo: <https://REDACTED.cloudfront.net> — one shared environment, no accounts.
-
 ## Quick start
 
 ```bash
@@ -76,7 +74,7 @@ src/
 
 ```bash
 pnpm eval:docs    # once after cloning — the 2.7 MB corpus is generated, not committed
-EVAL_BASE_URL=https://REDACTED.cloudfront.net pnpm eval
+EVAL_BASE_URL=<your-deployed-url> pnpm eval
 ```
 
 The environment must hold exactly one `ready` copy of each of the five documents; `beforeAll` fails the suite otherwise. Retrieval, citation and abstention outcomes are computed — answer correctness and claim support stay `pending_review` until a person fills them in.

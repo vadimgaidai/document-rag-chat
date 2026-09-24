@@ -18,6 +18,7 @@ import { Route as LandingIndexRouteImport } from './routes/_landing/index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiFilesRouteImport } from './routes/api/files'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiFilesIdRouteImport } from './routes/api/files.$id'
 import { Route as ApiFilesIdContextRouteImport } from './routes/api/files.$id.context'
 
 const AppRouteRoute = AppRouteRouteImport.update({
@@ -63,10 +64,15 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiFilesIdContextRoute = ApiFilesIdContextRouteImport.update({
-  id: '/$id/context',
-  path: '/$id/context',
+const ApiFilesIdRoute = ApiFilesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
   getParentRoute: () => ApiFilesRoute,
+} as any)
+const ApiFilesIdContextRoute = ApiFilesIdContextRouteImport.update({
+  id: '/context',
+  path: '/context',
+  getParentRoute: () => ApiFilesIdRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/api/files': typeof ApiFilesRouteWithChildren
   '/api/health': typeof ApiHealthRoute
+  '/api/files/$id': typeof ApiFilesIdRouteWithChildren
   '/api/files/$id/context': typeof ApiFilesIdContextRoute
 }
 export interface FileRoutesByTo {
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/api/files': typeof ApiFilesRouteWithChildren
   '/api/health': typeof ApiHealthRoute
+  '/api/files/$id': typeof ApiFilesIdRouteWithChildren
   '/api/files/$id/context': typeof ApiFilesIdContextRoute
 }
 export interface FileRoutesById {
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/api/files': typeof ApiFilesRouteWithChildren
   '/api/health': typeof ApiHealthRoute
   '/_landing/': typeof LandingIndexRoute
+  '/api/files/$id': typeof ApiFilesIdRouteWithChildren
   '/api/files/$id/context': typeof ApiFilesIdContextRoute
 }
 export interface FileRouteTypes {
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/files'
     | '/api/health'
+    | '/api/files/$id'
     | '/api/files/$id/context'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/files'
     | '/api/health'
+    | '/api/files/$id'
     | '/api/files/$id/context'
   id:
     | '__root__'
@@ -134,6 +145,7 @@ export interface FileRouteTypes {
     | '/api/files'
     | '/api/health'
     | '/_landing/'
+    | '/api/files/$id'
     | '/api/files/$id/context'
   fileRoutesById: FileRoutesById
 }
@@ -210,12 +222,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/files/$id': {
+      id: '/api/files/$id'
+      path: '/$id'
+      fullPath: '/api/files/$id'
+      preLoaderRoute: typeof ApiFilesIdRouteImport
+      parentRoute: typeof ApiFilesRoute
+    }
     '/api/files/$id/context': {
       id: '/api/files/$id/context'
-      path: '/$id/context'
+      path: '/context'
       fullPath: '/api/files/$id/context'
       preLoaderRoute: typeof ApiFilesIdContextRouteImport
-      parentRoute: typeof ApiFilesRoute
+      parentRoute: typeof ApiFilesIdRoute
     }
   }
 }
@@ -248,12 +267,24 @@ const LandingRouteRouteWithChildren = LandingRouteRoute._addFileChildren(
   LandingRouteRouteChildren,
 )
 
-interface ApiFilesRouteChildren {
+interface ApiFilesIdRouteChildren {
   ApiFilesIdContextRoute: typeof ApiFilesIdContextRoute
 }
 
-const ApiFilesRouteChildren: ApiFilesRouteChildren = {
+const ApiFilesIdRouteChildren: ApiFilesIdRouteChildren = {
   ApiFilesIdContextRoute: ApiFilesIdContextRoute,
+}
+
+const ApiFilesIdRouteWithChildren = ApiFilesIdRoute._addFileChildren(
+  ApiFilesIdRouteChildren,
+)
+
+interface ApiFilesRouteChildren {
+  ApiFilesIdRoute: typeof ApiFilesIdRouteWithChildren
+}
+
+const ApiFilesRouteChildren: ApiFilesRouteChildren = {
+  ApiFilesIdRoute: ApiFilesIdRouteWithChildren,
 }
 
 const ApiFilesRouteWithChildren = ApiFilesRoute._addFileChildren(

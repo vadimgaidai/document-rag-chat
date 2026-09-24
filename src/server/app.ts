@@ -10,7 +10,7 @@ import { S3VectorsService } from "./shared/s3-vectors/s3-vectors.service"
 
 export const createDocumentsService = (): DocumentsService => {
   const config = new ConfigService()
-  return new DocumentsService(new S3Service(config))
+  return new DocumentsService(new S3Service(config), new S3VectorsService(config))
 }
 
 export const createChatService = (): ChatService =>
@@ -36,10 +36,11 @@ export const createRetrievalService = (): RetrievalService => {
 export const createIngestionService = (): IngestionService => {
   const config = new ConfigService()
   const s3 = new S3Service(config)
+  const vectors = new S3VectorsService(config)
   return new IngestionService(
     s3,
     new BedrockService(config),
-    new S3VectorsService(config),
-    new DocumentsService(s3),
+    vectors,
+    new DocumentsService(s3, vectors),
   )
 }

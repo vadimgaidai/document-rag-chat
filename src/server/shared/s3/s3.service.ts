@@ -1,4 +1,5 @@
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
@@ -120,6 +121,10 @@ export class S3Service {
       }
       throw error
     }
+  }
+
+  async deleteObject(key: string): Promise<void> {
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }))
   }
 
   createUploadForm(key: string, options: TUploadFormOptions): Promise<TPresignedPost> {

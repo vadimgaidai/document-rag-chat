@@ -13,23 +13,29 @@ import type {
   TDocumentListRequest,
   TUploadRequest,
 } from "@/contracts"
-import { normalizeNewlines } from "@/server/modules/ingestion/chunker/chunker"
+import { chunkId, normalizeNewlines } from "@/server/modules/ingestion/chunker/chunker"
+import { parseChunks } from "@/server/modules/ingestion/chunker/chunks-file"
 import type { S3Service } from "@/server/shared/s3/s3.service"
 import type { TPutResult } from "@/server/shared/s3/s3.types"
+import type { S3VectorsService } from "@/server/shared/s3-vectors/s3-vectors.service"
 
 import { STATUS_KEY_METADATA, STATUS_PREFIX } from "./documents.constants"
-import { originalKey, statusKey } from "./documents.keys"
+import { chunksKey, isStatusKeyOf, originalKey, statusKey } from "./documents.keys"
 
 import type {
   TCreateUploadResult,
   TDocumentPage,
   TFailOutcome,
+  TRemoveOutcome,
   TStatusTransition,
   TStoredStatus,
 } from "./documents.types"
 
 export class DocumentsService {
-  constructor(private readonly s3: S3Service) {}
+  constructor(
+    private readonly s3: S3Service,
+    private readonly vectors: S3VectorsService,
+  ) {}
 
   async createUpload({ name, sizeBytes }: TUploadRequest): Promise<TCreateUploadResult> {
     if ((await this.s3.countKeys(STATUS_PREFIX)) >= MAX_LIBRARY_FILES) {
@@ -138,6 +144,47 @@ export class DocumentsService {
       reason,
       failedAt: new Date().toISOString(),
     })
+  }
+
+  async remove(fileId: string): Promise<TRemoveOutcome> {
+    const status = await this.findStatus(fileId)
+    const original = await this.s3.headMetadata(originalKey(fileId))
+
+    if (!status && !original) {
+      return "not-found"
+    }
+
+    const vectorKeys = await this.collectVectorKeys(fileId, status)
+
+    if (status) {
+      await this.s3.deleteObject(status.key)
+    }
+    await this.vectors.delete(vectorKeys)
+    await this.s3.deleteObject(chunksKey(fileId))
+    await this.s3.deleteObject(originalKey(fileId))
+
+    return "deleted"
+  }
+
+  private async findStatus(fileId: string): Promise<TStoredStatus | null> {
+    const objects = await this.s3.listWithEtags(STATUS_PREFIX)
+    const match = objects.find((object) => isStatusKeyOf(object.key, fileId))
+
+    return match ? this.readStatus(match.key) : null
+  }
+
+  private async collectVectorKeys(fileId: string, status: TStoredStatus | null): Promise<string[]> {
+    const chunkCount = status?.document.chunkCount
+    if (chunkCount !== undefined) {
+      return Array.from({ length: chunkCount }, (_, seq) => chunkId(fileId, seq))
+    }
+
+    const chunks = await this.s3.getText(chunksKey(fileId))
+    if (chunks === null) {
+      return []
+    }
+
+    return parseChunks(chunks).map((chunk) => chunk.chunkId)
   }
 
   private async createProcessingStatus({

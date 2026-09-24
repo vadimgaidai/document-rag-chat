@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest"
 
-import { chunksKey, fileIdFromOriginalKey, originalKey, statusKey } from "./documents.keys"
+import {
+  chunksKey,
+  fileIdFromOriginalKey,
+  isStatusKeyOf,
+  originalKey,
+  statusKey,
+} from "./documents.keys"
 
 describe("originalKey", () => {
   it("is reversed by fileIdFromOriginalKey", () => {
@@ -28,6 +34,26 @@ describe("statusKey", () => {
     expect(statusKey("file-1", "2026-09-01T10:00:00.000Z")).toHaveLength(
       statusKey("file-2", "1999-01-01T00:00:00.000Z").length,
     )
+  })
+})
+
+describe("isStatusKeyOf", () => {
+  const uploadedAt = "2026-09-01T10:00:00.000Z"
+
+  it("matches the status key of its own file", () => {
+    expect(isStatusKeyOf(statusKey("file-1", uploadedAt), "file-1")).toBe(true)
+  })
+
+  it("rejects the status key of another file", () => {
+    expect(isStatusKeyOf(statusKey("file-2", uploadedAt), "file-1")).toBe(false)
+  })
+
+  it("rejects a key outside the status prefix", () => {
+    expect(isStatusKeyOf("index/file-1/chunks.jsonl", "file-1")).toBe(false)
+  })
+
+  it("rejects a file id that is only a suffix of another", () => {
+    expect(isStatusKeyOf(statusKey("older-file-1", uploadedAt), "file-1")).toBe(false)
   })
 })
 

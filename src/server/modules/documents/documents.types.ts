@@ -22,3 +22,6 @@ export type TCreateUploadResult =
 
 /** `noop`: the document was not `processing`, so there was nothing to fail. */
 export type TFailOutcome = TPutResult | "noop"
+
+/** `not-found`: neither a status object nor an original exists for the file id. */
+export type TRemoveOutcome = "deleted" | "not-found"

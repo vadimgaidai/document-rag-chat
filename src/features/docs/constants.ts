@@ -616,7 +616,7 @@ Question: <the question>`,
       },
       {
         kind: "paragraph",
-        text: "Known gaps: no delete, no reprocessing of a failed document (upload it again), no accounts, no stored conversations, and no check that an uploaded `.md` file is really Markdown.",
+        text: "Known gaps: no accounts, no stored conversations.",
       },
     ],
   },

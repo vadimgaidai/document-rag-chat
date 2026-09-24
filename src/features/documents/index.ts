@@ -1,6 +1,7 @@
 export { documentsApi } from "@/features/documents/api/documents.api"
-export { useUploadDocument } from "@/features/documents/api/documents.mutations"
+export { useDeleteDocument, useUploadDocument } from "@/features/documents/api/documents.mutations"
 export { documentKeys, documentQueries } from "@/features/documents/api/documents.queries"
+export { DeleteDocumentDialog } from "@/features/documents/components/delete-document-dialog"
 export { DocumentList } from "@/features/documents/components/document-list"
 export { DocumentStatusBadge } from "@/features/documents/components/document-status-badge"
 export { UploadDialog } from "@/features/documents/components/upload-dialog"

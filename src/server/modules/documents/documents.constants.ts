@@ -2,6 +2,7 @@ export const STATUS_PREFIX = "status/"
 export const ORIGINALS_PREFIX = "originals/"
 export const INDEX_PREFIX = "index/"
 export const ORIGINAL_EXTENSION = ".md"
+export const STATUS_EXTENSION = ".json"
 
 export const STATUS_KEY_METADATA = "status-key"
 

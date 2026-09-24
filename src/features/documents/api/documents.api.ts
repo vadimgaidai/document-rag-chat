@@ -2,11 +2,13 @@ import queryString from "query-string"
 
 import {
   contextResponseSchema,
+  documentDeleteResponseSchema,
   documentListResponseSchema,
   uploadResponseSchema,
 } from "@/contracts"
 import type {
   TContextResponse,
+  TDocumentDeleteResponse,
   TDocumentListResponse,
   TPresignedPost,
   TUploadRequest,
@@ -44,6 +46,9 @@ export const documentsApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
     }),
+
+  remove: (fileId: string): Promise<TDocumentDeleteResponse> =>
+    apiFetch(documentDeleteResponseSchema, `/api/files/${fileId}`, { method: "DELETE" }),
 
   postToBucket: (upload: TPresignedPost, file: File, onProgress?: (percent: number) => void) =>
     new Promise<void>((resolve, reject) => {

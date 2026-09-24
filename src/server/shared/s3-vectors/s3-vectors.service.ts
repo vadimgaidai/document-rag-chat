@@ -1,8 +1,13 @@
-import { PutVectorsCommand, QueryVectorsCommand, S3VectorsClient } from "@aws-sdk/client-s3vectors"
+import {
+  DeleteVectorsCommand,
+  PutVectorsCommand,
+  QueryVectorsCommand,
+  S3VectorsClient,
+} from "@aws-sdk/client-s3vectors"
 
 import type { ConfigService } from "@/server/shared/config/config.service"
 
-import { PUT_BATCH_SIZE } from "./s3-vectors.constants"
+import { DELETE_BATCH_SIZE, PUT_BATCH_SIZE } from "./s3-vectors.constants"
 
 import type { TQueryOptions, TVectorMatch, TVectorRecord } from "./s3-vectors.types"
 
@@ -27,6 +32,21 @@ export class S3VectorsService {
             data: { float32: record.embedding },
             metadata: record.metadata,
           })),
+        }),
+      )
+    }
+  }
+
+  async delete(keys: readonly string[]): Promise<void> {
+    const vectorBucketName = this.config.vectorsBucket
+    const indexName = this.config.vectorsIndex
+
+    for (let start = 0; start < keys.length; start += DELETE_BATCH_SIZE) {
+      await this.client.send(
+        new DeleteVectorsCommand({
+          vectorBucketName,
+          indexName,
+          keys: keys.slice(start, start + DELETE_BATCH_SIZE),
         }),
       )
     }

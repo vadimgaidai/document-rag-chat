@@ -47,6 +47,8 @@ const breadcrumbAt = (headings: readonly THeading[], line: number) => {
 
 export const normalizeNewlines = (source: string) => source.replace(/\r\n/g, "\n")
 
+export const chunkId = (fileId: string, seq: number) => `${fileId}:${seq}`
+
 export const chunkMarkdown = async (source: string, fileId: string): Promise<TChunk[]> => {
   const normalized = normalizeNewlines(source)
   const splitter = new MarkdownTextSplitter({
@@ -77,7 +79,7 @@ export const chunkMarkdown = async (source: string, fileId: string): Promise<TCh
     }
 
     chunks.push({
-      chunkId: `${fileId}:${chunks.length}`,
+      chunkId: chunkId(fileId, chunks.length),
       fileId,
       seq: chunks.length,
       headingPath: breadcrumbAt(headings, startLine),

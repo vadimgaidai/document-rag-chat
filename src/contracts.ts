@@ -84,6 +84,10 @@ export const uploadResponseSchema = z.object({
   upload: presignedPostSchema,
 })
 
+export const documentDeleteResponseSchema = z.object({
+  fileId: z.uuid(),
+})
+
 export const apiErrorCodeSchema = z.enum(API_ERROR_CODE)
 
 export const apiErrorSchema = z.object({
@@ -211,6 +215,7 @@ export type TDocument = z.infer<typeof documentSchema>
 export type TDocumentListResponse = z.infer<typeof documentListResponseSchema>
 export type TPresignedPost = z.infer<typeof presignedPostSchema>
 export type TUploadResponse = z.infer<typeof uploadResponseSchema>
+export type TDocumentDeleteResponse = z.infer<typeof documentDeleteResponseSchema>
 export type TApiErrorCode = z.infer<typeof apiErrorCodeSchema>
 export type TApiError = z.infer<typeof apiErrorSchema>
 export type TSourceRef = z.infer<typeof sourceRefSchema>

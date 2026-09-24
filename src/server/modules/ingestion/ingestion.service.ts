@@ -2,6 +2,7 @@ import { DOCUMENT_STATUS } from "@/contracts"
 import { FAILURE_REASON } from "@/server/modules/documents/documents.constants"
 import { chunksKey, originalKey } from "@/server/modules/documents/documents.keys"
 import type { DocumentsService } from "@/server/modules/documents/documents.service"
+import type { TStoredStatus } from "@/server/modules/documents/documents.types"
 import type { BedrockService } from "@/server/shared/bedrock/bedrock.service"
 import type { S3Service } from "@/server/shared/s3/s3.service"
 import type { S3VectorsService } from "@/server/shared/s3-vectors/s3-vectors.service"
@@ -84,8 +85,7 @@ export class IngestionService {
     const totalMs = Date.now() - startedAt
 
     if (result === "precondition-failed") {
-      log({ fileId, stage: "lost-race", ms: totalMs })
-      return "lost-race"
+      return this.settleLostRace(current, chunks, totalMs)
     }
 
     log({
@@ -135,5 +135,25 @@ export class IngestionService {
       count: chunks.length,
       inputTokens,
     })
+  }
+
+  private async settleLostRace(
+    current: TStoredStatus,
+    chunks: readonly TChunk[],
+    totalMs: number,
+  ): Promise<TIngestOutcome> {
+    const { fileId } = current.document
+
+    const survivor = await this.documents.readStatus(current.key)
+    if (survivor) {
+      log({ fileId, stage: "lost-race", ms: totalMs })
+      return "lost-race"
+    }
+
+    await this.vectors.delete(chunks.map((chunk) => chunk.chunkId))
+    await this.s3.deleteObject(chunksKey(fileId))
+
+    log({ fileId, stage: "cleaned", ms: totalMs, count: chunks.length })
+    return "cleaned"
   }
 }
