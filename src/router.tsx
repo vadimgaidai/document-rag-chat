@@ -7,8 +7,6 @@ import { deLocalizeUrl, localizeUrl } from "@/paraglide/runtime"
 import { routeTree } from "./routeTree.gen"
 
 export const getRouter = () => {
-  // Called once per server request and once per browser session, so every
-  // request gets its own cache.
   const queryClient = createQueryClient()
 
   const router = createTanStackRouter({

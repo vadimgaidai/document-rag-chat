@@ -1,0 +1,7 @@
+# The chunker fixtures are byte-exact test input. `crlf.md` must keep its CRLF
+# endings on every platform — normalizing them would silently delete the case.
+src/server/ingestion/__fixtures__/*.md -text
+
+# The generated corpus is compared byte-for-byte against a regeneration, so it
+# must round-trip through git unchanged.
+eval/docs/*.md -text

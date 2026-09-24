@@ -14,18 +14,24 @@ Stack, install steps and current status: [README](./README.md).
 
 ## Commands
 
-| Command                                 | What it does                                       |
-| --------------------------------------- | -------------------------------------------------- |
-| `pnpm dev`                              | Dev server on port 3000                            |
-| `pnpm build`                            | Production build (client + SSR)                    |
-| `pnpm typecheck`                        | `tsc --noEmit`                                     |
-| `pnpm lint` / `pnpm lint:fix`           | ESLint over the repo                               |
-| `pnpm stylelint` / `pnpm stylelint:fix` | CSS                                                |
-| `pnpm format` / `pnpm format:check`     | Prettier                                           |
-| `pnpm test` / `pnpm test:watch`         | Vitest                                             |
-| `pnpm check`                            | format:check → lint → stylelint → typecheck → test |
+| Command | What it does |
+| --- | --- |
+| `pnpm dev` | Dev server on port 3000 |
+| `pnpm build` | Production build into `.output/` — a streaming Lambda handler plus static assets |
+| `pnpm build:lambda` | Bundles `src/lambda/*` into `dist/lambda/<name>/index.js`, one zip-able Lambda each |
+| `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm lint` / `pnpm lint:fix` | ESLint over the repo |
+| `pnpm stylelint` / `pnpm stylelint:fix` | CSS |
+| `pnpm format` / `pnpm format:check` | Prettier |
+| `pnpm test` / `pnpm test:watch` | Vitest |
+| `pnpm ingest:local <fileId>` | Runs ingestion against the real bucket, skipping the queue — needs AWS credentials |
+| `pnpm check` | format:check → lint → stylelint → typecheck → test |
 
-`pnpm check` is the verification command. Git hooks already run ESLint, Stylelint and Prettier over staged files, and commitlint over the message — don't hand-format and don't re-run what a hook enforces.
+`pnpm check` is the verification command.
+
+**Nothing run locally in this repository touches AWS, and no infrastructure lives in it.** No infrastructure-as-code tool, no `infra/` folder, no local deploy script. There is one environment, `develop`. Its AWS resources are created, changed and deleted by the user by hand with the AWS CLI, following the step-by-step procedure kept outside the repository in the gitignored `.planning/aws/SETUP.md`. Code reaches that environment only through `.github/workflows/deploy-develop.yml`, on every push to `develop`: `pnpm check`, build, `update-function-code` for the three functions, asset sync, CloudFront invalidation — with a GitHub OIDC role scoped to exactly those actions. When a step changes what the infrastructure must look like (a timeout, an env var, an IAM statement, a new resource), the change goes into `SETUP.md` as the exact command, and the user applies it; CI never reconfigures anything.
+
+Git hooks already run ESLint, Stylelint and Prettier over staged files, and commitlint over the message — don't hand-format and don't re-run what a hook enforces.
 
 ## Structure
 
@@ -44,20 +50,38 @@ Folders are created together with real content. Do not pre-create empty modules,
 | `src/lib/query/` | QueryClient factory and query key factory |
 | `src/lib/api/` | Small HTTP client, once code actually calls an API |
 | `src/lib/utils.ts` | `cn` |
-| `src/server/` | Server-side application logic and AWS integrations |
-| `src/workers/` | Ingestion and DLQ entry points |
+| `src/server/` | Server-side application logic and AWS integrations, one folder per concern (see below) |
+| `src/lambda/` | Lambda entry points (SQS ingestion, DLQ): thin adapters that parse the event and call `src/server/` — no logic of their own. Bundled one per file by `pnpm build:lambda` |
 | `src/contracts.ts` | Shared API schemas, once real APIs exist |
-| `infra/` | AWS deployment configuration |
+| `scripts/` | Node scripts run by hand against a real environment (`pnpm ingest:local`). Never imported by the app |
 | `eval/` | Fixtures, questions, eval and results |
+
+### Inside `src/server/`
+
+Laid out the way a NestJS application is, minus the framework. Three levels and nothing else at the root:
+
+| Path | Role in Nest terms |
+| --- | --- |
+| `app.ts` | The `AppModule`: the one place that knows how a service is assembled. It exports factories (`createDocumentsService`, `createIngestionService`), not instances, so nothing runs at import time; a controller calls its factory once, at module level, and nothing else calls `new` on a service |
+| `shared/` | `@Global()` modules — wrappers over one AWS service each, knowing nothing about documents: `config/`, `s3/`, `sqs/`, `bedrock/`, `s3-vectors/`, plus `utils/` for helpers with no domain |
+| `modules/` | Domain modules: `documents/` (upload form, status objects and their transitions, the S3 key scheme) and `ingestion/` (the pipeline; its `chunker/` sub-folder holds the splitter, the `chunks.jsonl` format and their fixtures) |
+
+Controllers live outside `src/server/` and stay thin: `src/routes/api/*` (HTTP) and `src/lambda/*` (Lambda) parse the input and call one service method.
+
+Every module folder has the same file set, named after the module: `<name>.service.ts` — a class whose dependencies arrive through the constructor; `<name>.types.ts` — the types that cross a file boundary (a type used by one file stays in it); `<name>.constants.ts` — its numbers and strings; `<name>.helpers.ts` / `<name>.keys.ts` — pure functions with no dependencies, which need no class; tests next to what they test. There is no DI container: `app.ts` wires by hand, and a test builds a service with stubbed dependencies the same way.
+
+Modules import each other by full path (`@/server/modules/documents/documents.keys`) — there are no barrels. `shared/` never imports from `modules/`.
+
+Known cost of the single root: `app.ts` statically imports every service, so every Lambda bundle that imports it carries the chunker's dependencies (`@langchain/core`, `langsmith`, `remark` — ~900 KB) even when it only calls `createDocumentsService`. Measured and accepted; a root per entry point would remove it if it ever matters.
 
 A feature under `src/features/` is anything that belongs to one particular layout or page and nothing else — a dashboard shell and a landing page count, same as a domain feature like chat or documents. `src/components/` holds only what's genuinely cross-cutting; when a component turns out to be used by just one feature, it moves into that feature instead of staying "global" by default. Inside a small feature, files sit next to each other; subfolders appear only when the feature actually grows. Local hooks stay next to their feature. UI is imported from the component file directly (`@/components/ui/card`), never from a barrel. The `@/*` alias maps to `src/*`.
 
 ## Client / server boundary
 
 - Standard Start SSR: the server renders the page shell, the browser hydrates. No SPA mode, no RSC.
-- HTTP routes live in `src/routes/` (not `src/server/routes/`) and call application functions from `src/server/`. A worker calls that server logic directly — never over the app's own HTTP API.
+- HTTP routes live in `src/routes/` (not `src/server/routes/`) and call application functions from `src/server/`. A Lambda handler in `src/lambda/` calls that server logic directly — never over the app's own HTTP API.
 - Never touch `window`, `document` or `localStorage` at module import time or during server render.
-- Secrets and the AWS SDK must not reach the client bundle. Put server-only modules under `src/server/` **and** give them Start's import protection (`.server.ts` naming or `serverOnly()`); the folder name alone protects nothing.
+- Secrets and the AWS SDK must not reach the client bundle. Everything under `src/server/` is imported only from `src/routes/api/*`, `src/lambda/*` and `scripts/` — never from a component, a hook or a loader. A function that must be callable from isomorphic code goes through Start's `createServerOnlyFn`. A `.server.ts` suffix has no effect in Start on its own (it appears only in the plugin's error hints), so it is not relied on.
 - Client-readable env vars are prefixed `VITE_`; anything else stays server-side.
 - `src/server.ts` is Start's server **entry** (one file). Application logic goes in `src/server/`.
 
@@ -131,4 +155,4 @@ Conventional Commits, enforced by commitlint: `type: subject`, e.g. `chore: conf
 
 ## Out of scope right now
 
-Document ingestion, RAG, evaluation and AWS deployment are not implemented and are not part of setup-level changes. Don't add a backend framework, a monorepo, a database, auth, i18n or a global state manager.
+RAG and evaluation are not implemented and are not part of setup-level changes. Don't add a backend framework, a monorepo, a database, auth, i18n or a global state manager.

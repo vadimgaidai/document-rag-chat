@@ -6,6 +6,8 @@ dist
 dist-ssr
 .output
 .nitro
+
+
 .tanstack
 .vinxi
 .wrangler
@@ -25,5 +27,6 @@ coverage
 .idea
 *.sw?
 
-# Planning notes written by the agent workflow
+
 .planning
+eval/docs/*.md

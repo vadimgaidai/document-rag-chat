@@ -14,6 +14,9 @@ import { Route as LandingRouteRouteImport } from './routes/_landing/route'
 import { Route as AppChatRouteImport } from './routes/_app/chat'
 import { Route as AppKnowledgeBaseRouteImport } from './routes/_app/knowledge-base'
 import { Route as LandingIndexRouteImport } from './routes/_landing/index'
+import { Route as ApiFilesRouteImport } from './routes/api/files'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiSseProbeRouteImport } from './routes/api/sse-probe'
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
@@ -38,16 +41,37 @@ const LandingIndexRoute = LandingIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LandingRouteRoute,
 } as any)
+const ApiFilesRoute = ApiFilesRouteImport.update({
+  id: '/api/files',
+  path: '/api/files',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSseProbeRoute = ApiSseProbeRouteImport.update({
+  id: '/api/sse-probe',
+  path: '/api/sse-probe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LandingIndexRoute
   '/chat': typeof AppChatRoute
   '/knowledge-base': typeof AppKnowledgeBaseRoute
+  '/api/files': typeof ApiFilesRoute
+  '/api/health': typeof ApiHealthRoute
+  '/api/sse-probe': typeof ApiSseProbeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof LandingIndexRoute
   '/chat': typeof AppChatRoute
   '/knowledge-base': typeof AppKnowledgeBaseRoute
+  '/api/files': typeof ApiFilesRoute
+  '/api/health': typeof ApiHealthRoute
+  '/api/sse-probe': typeof ApiSseProbeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -55,25 +79,46 @@ export interface FileRoutesById {
   '/_landing': typeof LandingRouteRouteWithChildren
   '/_app/chat': typeof AppChatRoute
   '/_app/knowledge-base': typeof AppKnowledgeBaseRoute
+  '/api/files': typeof ApiFilesRoute
+  '/api/health': typeof ApiHealthRoute
+  '/api/sse-probe': typeof ApiSseProbeRoute
   '/_landing/': typeof LandingIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/chat' | '/knowledge-base'
+  fullPaths:
+    | '/'
+    | '/chat'
+    | '/knowledge-base'
+    | '/api/files'
+    | '/api/health'
+    | '/api/sse-probe'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/chat' | '/knowledge-base'
+  to:
+    | '/'
+    | '/chat'
+    | '/knowledge-base'
+    | '/api/files'
+    | '/api/health'
+    | '/api/sse-probe'
   id:
     | '__root__'
     | '/_app'
     | '/_landing'
     | '/_app/chat'
     | '/_app/knowledge-base'
+    | '/api/files'
+    | '/api/health'
+    | '/api/sse-probe'
     | '/_landing/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRouteRoute: typeof AppRouteRouteWithChildren
   LandingRouteRoute: typeof LandingRouteRouteWithChildren
+  ApiFilesRoute: typeof ApiFilesRoute
+  ApiHealthRoute: typeof ApiHealthRoute
+  ApiSseProbeRoute: typeof ApiSseProbeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -113,6 +158,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LandingIndexRouteImport
       parentRoute: typeof LandingRouteRoute
     }
+    '/api/files': {
+      id: '/api/files'
+      path: '/api/files'
+      fullPath: '/api/files'
+      preLoaderRoute: typeof ApiFilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/sse-probe': {
+      id: '/api/sse-probe'
+      path: '/api/sse-probe'
+      fullPath: '/api/sse-probe'
+      preLoaderRoute: typeof ApiSseProbeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -145,7 +211,19 @@ const LandingRouteRouteWithChildren = LandingRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AppRouteRoute: AppRouteRouteWithChildren,
   LandingRouteRoute: LandingRouteRouteWithChildren,
+  ApiFilesRoute: ApiFilesRoute,
+  ApiHealthRoute: ApiHealthRoute,
+  ApiSseProbeRoute: ApiSseProbeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "seed": 1592597249,
+  "facts": [
+    {
+      "id": "f01",
+      "file": "01-handbook.md",
+      "startLine": 40,
+      "endLine": 40,
+      "kind": "prose",
+      "value": "1,240 EUR",
+      "question": "What is the annual home office allowance in the company handbook?",
+      "answer": "1,240 EUR per calendar year"
+    },
+    {
+      "id": "f02",
+      "file": "01-handbook.md",
+      "startLine": 960,
+      "endLine": 962,
+      "kind": "list",
+      "value": "37 days",
+      "question": "How much notice does an internal transfer require?",
+      "answer": "37 days"
+    },
+    {
+      "id": "f03",
+      "file": "01-handbook.md",
+      "startLine": 1889,
+      "endLine": 1891,
+      "kind": "table",
+      "value": "14 months",
+      "question": "How often must security training be refreshed?",
+      "answer": "Every 14 months"
+    },
+    {
+      "id": "f04",
+      "file": "02-api-reference.md",
+      "startLine": 61,
+      "endLine": 64,
+      "kind": "code",
+      "value": "17 minutes",
+      "question": "How long does a search cursor stay valid?",
+      "answer": "17 minutes"
+    },
+    {
+      "id": "f05",
+      "file": "02-api-reference.md",
+      "startLine": 1355,
+      "endLine": 1355,
+      "kind": "prose",
+      "value": "5 MB",
+      "question": "What is the maximum request body the ingest endpoint accepts?",
+      "answer": "5 MB"
+    },
+    {
+      "id": "f06",
+      "file": "02-api-reference.md",
+      "startLine": 2597,
+      "endLine": 2599,
+      "kind": "list",
+      "value": "29 hours",
+      "question": "For how long is a failing webhook retried before it is dropped?",
+      "answer": "29 hours"
+    },
+    {
+      "id": "f07",
+      "file": "03-contract.md",
+      "startLine": 43,
+      "endLine": 45,
+      "kind": "table",
+      "value": "8 MB",
+      "question": "What is the maximum request body the ingest endpoint accepts?",
+      "answer": "8 MB"
+    },
+    {
+      "id": "f08",
+      "file": "03-contract.md",
+      "startLine": 1341,
+      "endLine": 1344,
+      "kind": "code",
+      "value": "2,750,000 EUR",
+      "question": "What is the supplier's liability cap in the first contract year?",
+      "answer": "2,750,000 EUR"
+    },
+    {
+      "id": "f09",
+      "file": "03-contract.md",
+      "startLine": 2770,
+      "endLine": 2770,
+      "kind": "prose",
+      "value": "19 hours",
+      "question": "Within how many hours must a security incident be notified?",
+      "answer": "19 hours"
+    },
+    {
+      "id": "f10",
+      "file": "04-lab-notebook.md",
+      "startLine": 92,
+      "endLine": 94,
+      "kind": "list",
+      "value": "1,830 ms",
+      "question": "What median latency did the hybrid weighting run record?",
+      "answer": "1,830 ms"
+    },
+    {
+      "id": "f11",
+      "file": "04-lab-notebook.md",
+      "startLine": 2075,
+      "endLine": 2077,
+      "kind": "table",
+      "value": "48,610 chunks",
+      "question": "How many chunks did the rebuilt index hold?",
+      "answer": "48,610 chunks"
+    },
+    {
+      "id": "f12",
+      "file": "04-lab-notebook.md",
+      "startLine": 4098,
+      "endLine": 4101,
+      "kind": "code",
+      "value": "0.42",
+      "question": "Which abstention threshold did the distractor study use?",
+      "answer": "0.42"
+    },
+    {
+      "id": "f13",
+      "file": "05-encyclopedia.md",
+      "startLine": 452,
+      "endLine": 452,
+      "kind": "prose",
+      "value": "265,000 rows",
+      "question": "What is the default export cap for a workspace?",
+      "answer": "265,000 rows"
+    },
+    {
+      "id": "f14",
+      "file": "05-encyclopedia.md",
+      "startLine": 10611,
+      "endLine": 10613,
+      "kind": "list",
+      "value": "23 days",
+      "question": "How long can a workspace roll back after a migration window closes?",
+      "answer": "23 days"
+    },
+    {
+      "id": "f15",
+      "file": "05-encyclopedia.md",
+      "startLine": 21446,
+      "endLine": 21448,
+      "kind": "table",
+      "value": "26 months",
+      "question": "For how long are audit events retained?",
+      "answer": "26 months"
+    }
+  ],
+  "conflicts": [
+    {
+      "factA": "f05",
+      "factB": "f07"
+    }
+  ],
+  "injection": {
+    "file": "04-lab-notebook.md",
+    "startLine": 2635,
+    "endLine": 2636
+  },
+  "unanswerable": [
+    {
+      "question": "What is the supplier's registered VAT number?"
+    },
+    {
+      "question": "Which font does the Ember Console use for its printed reports?"
+    },
+    {
+      "question": "How many employees worked at Halden Retail in 2019?"
+    },
+    {
+      "question": "What is the postal address of the Girona Router data centre?"
+    }
+  ]
+}

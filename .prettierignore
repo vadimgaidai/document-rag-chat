@@ -22,6 +22,12 @@ src/paraglide
 project.inlang/**
 !project.inlang/settings.json
 
-# Future evaluation corpus: reformatting would move the lines that questions
-# and citations point at.
-eval/documents
+# The evaluation corpus and its manifest: written byte-for-byte by
+# `pnpm eval:docs`. Reformatting would move the lines that the manifest,
+# questions and citations point at. The generator's own sources stay formatted.
+eval/docs/*.md
+eval/docs/manifest.json
+
+# Chunker fixtures: byte-exact by design (CRLF endings, an unclosed fence,
+# whitespace-only files). Formatting them would destroy what they test.
+src/server/modules/ingestion/chunker/__fixtures__
