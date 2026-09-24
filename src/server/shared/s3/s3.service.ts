@@ -27,6 +27,11 @@ import type { z } from "zod"
 const statusOf = (error: unknown) =>
   error instanceof S3ServiceException ? error.$metadata.httpStatusCode : undefined
 
+const isLostConditionalWrite = (status: number | undefined, options: TPutJsonOptions) =>
+  status !== undefined &&
+  (PRECONDITION_STATUS.includes(status) ||
+    (status === NOT_FOUND_STATUS && options.ifMatch !== undefined))
+
 export class S3Service {
   private readonly client: S3Client
 
@@ -109,8 +114,7 @@ export class S3Service {
       )
       return "ok"
     } catch (error) {
-      const status = statusOf(error)
-      if (status !== undefined && PRECONDITION_STATUS.includes(status)) {
+      if (isLostConditionalWrite(statusOf(error), options)) {
         return "precondition-failed"
       }
       throw error
