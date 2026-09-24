@@ -9,6 +9,7 @@ import { m } from "@/paraglide/messages"
 const titleByPathname: Record<string, () => string> = {
   [ROUTES.knowledgeBase]: m.knowledge_base_title,
   [ROUTES.chat]: m.chat_title,
+  [ROUTES.docs]: m.docs_title,
 }
 
 export const AppHeader = () => {

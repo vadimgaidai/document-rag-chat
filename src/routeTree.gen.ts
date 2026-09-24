@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as LandingRouteRouteImport } from './routes/_landing/route'
 import { Route as AppChatRouteImport } from './routes/_app/chat'
+import { Route as AppDocsRouteImport } from './routes/_app/docs'
 import { Route as AppKnowledgeBaseRouteImport } from './routes/_app/knowledge-base'
 import { Route as LandingIndexRouteImport } from './routes/_landing/index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
@@ -30,6 +31,11 @@ const LandingRouteRoute = LandingRouteRouteImport.update({
 const AppChatRoute = AppChatRouteImport.update({
   id: '/chat',
   path: '/chat',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppDocsRoute = AppDocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppKnowledgeBaseRoute = AppKnowledgeBaseRouteImport.update({
@@ -66,6 +72,7 @@ const ApiFilesIdContextRoute = ApiFilesIdContextRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof LandingIndexRoute
   '/chat': typeof AppChatRoute
+  '/docs': typeof AppDocsRoute
   '/knowledge-base': typeof AppKnowledgeBaseRoute
   '/api/chat': typeof ApiChatRoute
   '/api/files': typeof ApiFilesRouteWithChildren
@@ -75,6 +82,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof LandingIndexRoute
   '/chat': typeof AppChatRoute
+  '/docs': typeof AppDocsRoute
   '/knowledge-base': typeof AppKnowledgeBaseRoute
   '/api/chat': typeof ApiChatRoute
   '/api/files': typeof ApiFilesRouteWithChildren
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteRouteWithChildren
   '/_landing': typeof LandingRouteRouteWithChildren
   '/_app/chat': typeof AppChatRoute
+  '/_app/docs': typeof AppDocsRoute
   '/_app/knowledge-base': typeof AppKnowledgeBaseRoute
   '/api/chat': typeof ApiChatRoute
   '/api/files': typeof ApiFilesRouteWithChildren
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/chat'
+    | '/docs'
     | '/knowledge-base'
     | '/api/chat'
     | '/api/files'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/chat'
+    | '/docs'
     | '/knowledge-base'
     | '/api/chat'
     | '/api/files'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_landing'
     | '/_app/chat'
+    | '/_app/docs'
     | '/_app/knowledge-base'
     | '/api/chat'
     | '/api/files'
@@ -154,6 +166,13 @@ declare module '@tanstack/react-router' {
       path: '/chat'
       fullPath: '/chat'
       preLoaderRoute: typeof AppChatRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/docs': {
+      id: '/_app/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof AppDocsRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/knowledge-base': {
@@ -203,11 +222,13 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteRouteChildren {
   AppChatRoute: typeof AppChatRoute
+  AppDocsRoute: typeof AppDocsRoute
   AppKnowledgeBaseRoute: typeof AppKnowledgeBaseRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppChatRoute: AppChatRoute,
+  AppDocsRoute: AppDocsRoute,
   AppKnowledgeBaseRoute: AppKnowledgeBaseRoute,
 }
 

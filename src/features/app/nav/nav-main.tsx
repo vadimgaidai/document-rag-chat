@@ -2,10 +2,11 @@ import { Link } from "@tanstack/react-router"
 
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { NAV_ITEMS } from "@/features/app/nav/nav-items"
+import type { INavItem } from "@/features/app/nav/nav-items"
 
-export const NavMain = () => (
+export const NavMain = ({ items = NAV_ITEMS }: { items?: INavItem[] }) => (
   <SidebarMenu>
-    {NAV_ITEMS.map((item) => (
+    {items.map((item) => (
       <SidebarMenuItem key={item.to}>
         <SidebarMenuButton asChild tooltip={item.label()}>
           <Link

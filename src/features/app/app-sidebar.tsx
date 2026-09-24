@@ -11,6 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { FOOTER_NAV_ITEMS } from "@/features/app/nav/nav-items"
 import { NavMain } from "@/features/app/nav/nav-main"
 import { ROUTES } from "@/lib/routes"
 import { m } from "@/paraglide/messages"
@@ -33,6 +34,7 @@ export const AppSidebar = () => (
       <NavMain />
     </SidebarContent>
     <SidebarFooter>
+      <NavMain items={FOOTER_NAV_ITEMS} />
       <LocaleSwitcher />
     </SidebarFooter>
   </Sidebar>

@@ -58,6 +58,7 @@
   "chat_flag_unknown_markers": "eine Quellenmarkierung ohne passende Quelle",
   "chat_flag_leaked_markup": "Formatierung der Belegblöcke in der Antwort",
   "chat_flag_empty_answer": "eine leere Antwort",
+  "docs_title": "Docs",
   "language_label": "Sprache",
   "theme_toggle_label": "Design wechseln",
   "landing_hero_heading": "Chatten mit der eigenen Wissensdatenbank.",

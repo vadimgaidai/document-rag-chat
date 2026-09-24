@@ -58,6 +58,7 @@
   "chat_flag_unknown_markers": "a citation marker matching no source",
   "chat_flag_leaked_markup": "evidence formatting copied into the answer",
   "chat_flag_empty_answer": "an empty answer",
+  "docs_title": "Docs",
   "language_label": "Language",
   "theme_toggle_label": "Toggle theme",
   "landing_hero_heading": "Chat with your knowledge base.",
