@@ -1,238 +1,92 @@
 # document-rag-chat
 
-A personal workspace for exploring document search and AI chat with TanStack Start and AWS. The interface is called **Document Workbench**.
+![TanStack Start](https://img.shields.io/badge/TanStack_Start-v1-EF4444?style=flat-square&logo=react&logoColor=white) ![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white) ![TypeScript 6](https://img.shields.io/badge/TypeScript-6-3178C6?style=flat-square&logo=typescript&logoColor=white) ![Vite 8](https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white) ![Tailwind v4](https://img.shields.io/badge/Tailwind-v4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white) ![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-new--york-000000?style=flat-square&logo=shadcnui&logoColor=white) ![AWS Bedrock](https://img.shields.io/badge/AWS-Lambda_·_S3_·_Bedrock-FF9900?style=flat-square&logo=amazonaws&logoColor=white)
 
-## Status
+Upload Markdown documents and ask questions about them. Every answer cites the passages it rests on, and each citation opens the original at those lines. The interface is called **Document Workbench**.
 
-Documents can be uploaded, listed, indexed and asked about. Every answer cites the passages it rests on, and each citation opens the original at those lines.
+Demo: <https://REDACTED.cloudfront.net> — one shared environment, no accounts.
 
-**Implemented**
-
-- TanStack Start + React 19 + TypeScript, server-rendered page shell with client hydration.
-- A start page with a responsive two-panel layout marking where documents and chat will go. The panels are empty states; they do not upload, search or answer anything.
-- TanStack Query wiring: a `QueryClient` factory (one instance per server request) and a typed query key factory, both unit-tested.
-- Tailwind CSS 4 + shadcn/ui with semantic tokens, including dark-mode tokens.
-- Localisation with Paraglide (`en`, `de`): the locale lives in the URL, is resolved on the server so SSR and hydration agree, and a working switcher sits in the page header.
-- ESLint, Stylelint, Prettier, TypeScript and Vitest, wired into Git hooks and one CI workflow.
-- Document upload and listing. `POST /api/files` takes `{ name, sizeBytes }`, records the document as `processing` and answers with a presigned S3 form; the browser posts the file into the bucket itself, so the bytes never pass through the server. The form is valid for 5 minutes and its policy pins the object key, the content type and the exact byte count. `GET /api/files` lists what exists. Markdown only, up to 5 MB per file and about 5 files — the count is checked before the form is issued and never reserved, so two simultaneous uploads at the limit can leave one file over it. The Knowledge Base page uploads one file after another, lists them and polls while anything is processing.
-
-  Uploading and browsing are separate on screen: a dialog owns the files going up right now — each with its own byte progress, its own error and its own retry — and the table owns what already exists and how far its indexing has got. The table is paginated on the server.
-
-  Two consequences of uploading straight into the bucket: the server cannot inspect the bytes, so a file that is not really Markdown is indexed as whatever text it contains rather than rejected; and an upload the user abandons after the form is issued leaves a row stuck in `processing` until the badge reports it as stale.
-
-- Document ingestion. The S3 upload notification lands in an SQS queue and a Lambda processes the whole document in one attempt: chunk it, write `index/{fileId}/chunks.jsonl`, embed every chunk with Titan Text Embeddings v2 and write the vectors into an S3 Vectors index, then publish by moving the status to `ready` with a conditional write. Nothing is visible until that single write lands, so a half-processed document is never readable.
-
-  Failures split in two. A transient one — throttling, a network error, a bug — is thrown, which returns the message to the queue and re-runs the document from scratch; after three attempts it reaches the dead-letter queue and a second Lambda marks the document `failed`. A deterministic one is not retried: a file with no indexable text is marked `failed` on the first attempt with the reason shown in the list.
-
-  A document that is empty or contains only whitespace is the only content that fails deterministically. Anything else — an images-only file, an oversized code fence — is indexed, with the chunker limits listed below.
-
-- Chat with retrieval and citations. `POST /api/chat` takes the browser's conversation (TanStack AI's AG-UI shape), keeps only user and assistant text, and windows it to whole turns; the latest question is never trimmed and is rejected above 4,000 characters (400), the whole history is capped at about 24,000 characters (older turns are dropped) and the body at 256 KB (413). The question is embedded and searched two ways over the published documents only — S3 Vectors top-10 and a BM25 index over the chunk texts top-10 — merged by reciprocal rank fusion, rescored by Bedrock Rerank and cut to at most five passages above a score floor. Those passages go to Nova Lite as numbered evidence blocks; the model answers in plain text with `[cN]` markers, which the server resolves back to file, heading and line range. The browser receives `rag.evidence` before generation and `rag.result` after it, renders the markers as chips and lists the sources under the answer; a chip opens the original document at the cited lines through `GET /api/files/:id/context`.
-
-  Abstention is one rule in two places. No passage above the floor → the server streams the sentence "I could not find sufficient support in the documents" itself and never calls the model. Passages present but the model still answers with that sentence and no marker → the answer counts as an abstention too, with real generation cost. The sentence next to cited claims is a partial answer, not an abstention. A marker the model invented is dropped from the citations, reported in `rag.result`, logged, and rendered as plain text.
-
-  The corpus the searches run over is cached on the warm Lambda and keyed by the ETags of the `status/` listing, so one LIST per question tells whether anything was published; a document becomes searchable on the first request after its status turns `ready`.
-
-- `GET /api/health` and the two Lambda handlers for the ingestion queue. One AWS environment (`develop`), set up by hand outside the repository; a push to the `develop` branch deploys code into it through [GitHub Actions](./.github/workflows/deploy-develop.yml). Nothing run locally creates, changes or deploys anything in AWS.
-
-- Answer controls. When the text ends, the server splits it into claims — sentences and list items, with a trailing `[cN]` bound back to the sentence it follows — and records each claim's character range in the answer. Quotations are checked against **the sources that claim itself cited**, never against the answer's other citations, so a phrase confirmed from a passage the sentence did not stand on counts as unverified. Three integrity checks run alongside: an invented marker, an evidence block copied into the answer, an empty answer.
-
-  Those outputs, and nothing else, decide a confidence of `supported`, `partially_supported` or `unsupported`. It is a statement about the mechanics of the answer — how much of it carries a resolved citation and whether its quotations are really in those sources — not about whether the cited text is true, so an answer can be confidently wrong and still come out "supported". That is why it is **not** shown as a badge over the answer: a single verdict on screen reads as "this answer is right", which none of these checks can tell. It travels in `rag.result` and is a column of the evaluation instead.
-
-  What the browser does show is specific and local: sentences with no citation are underlined with a dash at the offsets the server computed (the text is never split a second time), a source whose quotation could not be found carries a warning icon, and an integrity flag becomes a line under the answer. All of it appears only with `rag.result`, so a streaming, stopped or interrupted answer is never annotated.
-
-- The evaluation harness: 20 questions built from the corpus manifest, an SSE runner that classifies every transport outcome, auto-computed retrieval, citation and abstention metrics, and `pnpm eval` against a deployed environment. See [Evaluation](#evaluation).
-
-**Not implemented**
-
-- Claim-support judging by a second model, and calibrated confidence numbers. Whether an answer is actually right is the manual column of the evaluation.
-- Deleting documents or vectors, and reprocessing a document that failed — recovery is re-uploading the file.
-- A reviewed `eval/results.md`: the harness runs, but the run against the deployed environment and the manual answer-quality columns are still outstanding.
-
-Nothing in the repository requires AWS credentials or a paid API to install, run or check.
-
-## Requirements
-
-- Node — the version in [`.nvmrc`](./.nvmrc) (22.20.0); the supported range is in `engines` (`>=22.12.0`).
-- pnpm — the version pinned in `packageManager` (10.14.0). `corepack enable` picks it up automatically.
-
-Installing, running and checking the repository needs no environment variables. Uploading a document does: `DOCUMENTS_BUCKET`, `AWS_REGION` and credentials for an account whose bucket carries the CORS rule from the setup procedure — see [`.env.example`](./.env.example).
-
-## Getting started
+## Quick start
 
 ```bash
 pnpm install
 pnpm dev          # http://localhost:3000
 ```
 
-```bash
-pnpm build           # production build into .output/ — a streaming Lambda handler + static assets
-pnpm build:lambda    # bundle the SQS Lambda entry points into dist/lambda/
-pnpm preview         # rebuild for a plain Node server and serve it
-```
+Needs Node 22.12+ ([`.nvmrc`](./.nvmrc) pins 22.20.0) and the pnpm version in `packageManager`; `corepack enable` picks it up.
 
-### Checks
+Installing and `pnpm check` need no AWS credentials and create nothing. Uploading a document or asking a question does — fill in `.env` first.
 
-```bash
-pnpm check        # format:check → lint → stylelint → typecheck → test
-```
+## Environment
 
-Individually: `pnpm format:check`, `pnpm lint`, `pnpm stylelint`, `pnpm typecheck`, `pnpm test`, `pnpm build`. CI ([`.github/workflows/checks.yml`](./.github/workflows/checks.yml)) runs the same commands on the same Node and pnpm versions, plus commitlint over the commits of a pull request.
+Copy [`.env.example`](./.env.example) to `.env`. The buckets, the vector index and the model access are created by hand; nothing in this repository provisions them.
 
-Git hooks (Husky) run ESLint, Stylelint and Prettier over staged files before a commit, and commitlint over the message. `HUSKY=0` disables them, which is what CI does.
+| Variable                          | What it is                                       |
+| --------------------------------- | ------------------------------------------------ |
+| `AWS_PROFILE`, `AWS_REGION`       | Credentials and region for the SDK               |
+| `DOCUMENTS_BUCKET`                | Originals, `index/` chunks and `status/` objects |
+| `VECTORS_BUCKET`, `VECTORS_INDEX` | S3 Vectors index holding the embeddings          |
+| `EMBEDDINGS_MODEL_ID`             | `amazon.titan-embed-text-v2:0`                   |
+| `RERANK_MODEL_ID`                 | `cohere.rerank-v3-5:0`                           |
+| `GENERATION_MODEL_ID`             | `eu.amazon.nova-lite-v1:0` (inference profile)   |
+| `EVAL_BASE_URL`                   | Deployed URL the evaluation runs against         |
+
+## How it works
+
+- **Upload** — `POST /api/files` records the document as `processing` and returns a presigned S3 form; the browser posts the bytes straight into the bucket. Markdown only, 5 MB per file.
+- **Ingestion** — the S3 notification lands in SQS; a Lambda chunks the document, embeds every chunk with Titan and writes the vectors, then flips the status to `ready` with a conditional write. Failures retry three times, then the DLQ handler marks the document `failed`.
+- **Retrieval** — the question is searched two ways over published documents only, S3 Vectors and BM25, merged by reciprocal rank fusion, rescored by Bedrock Rerank and cut to at most five passages above a score floor.
+- **Generation** — the passages go to Nova Lite as numbered evidence; the model answers with `[cN]` markers, which the server resolves back to file, heading and line range. No passage above the floor means an abstention without calling the model.
+- **State** — there is no database. A document's state is a JSON object under `status/` in the same bucket, ordered by an inverted timestamp in the key so listing is a real page.
+
+## Scripts
+
+| Script | What it does |
+| --- | --- |
+| `pnpm dev` | Dev server on port 3000 |
+| `pnpm build` | Production build into `.output/` — streaming Lambda handler + static assets |
+| `pnpm build:lambda` | Bundles `src/lambda/*` into `dist/lambda/<name>/index.js` |
+| `pnpm check` | format:check → lint → stylelint → typecheck → test |
+| `pnpm eval:docs` | Regenerates the test corpus from its seed |
+| `pnpm eval` | The evaluation suite against `EVAL_BASE_URL` |
+| `pnpm ingest:local <fileId>` | Runs ingestion against the real bucket, skipping the queue |
+
+`pnpm preview`, `pnpm messages`, `pnpm generate-routes` and the individual `lint` / `stylelint` / `format` / `test` scripts exist too; Git hooks already run the formatters over staged files.
 
 ## Structure
 
 ```
 messages/          translation catalogues, one JSON per locale
-project.inlang/    Paraglide project settings (locales, message format)
+eval/              questions, metrics, SSE runner, corpus generator
 src/
   routes/          pages and Start HTTP API routes
-  components/      application components (locale switcher)
-  components/ui/   individual shadcn components
-  lib/query/       QueryClient factory + query key factory
-  lib/utils.ts     cn
-  server/          server-side logic, laid out like a NestJS app:
-    app.ts         composition root — constructs and wires the services
-    shared/        one wrapper per AWS service: config, s3, sqs, bedrock, s3-vectors
-    modules/       domain modules: documents, ingestion (with its chunker)
-  lambda/          Lambda entry points (ingestion, DLQ) — thin, call a service
-  router.tsx       router creation, locale URL rewrite, Start <-> Query integration
-  server.ts        Start server entry, wrapped in the Paraglide request middleware
-  styles.css       Tailwind entry point and design tokens
-  paraglide/       compiled messages — generated, not committed
-  routeTree.gen.ts generated — do not edit
+  features/        UI per layout or domain (app, landing, chat, documents, docs)
+  components/      cross-cutting UI; components/ui/ is shadcn
+  hooks/ providers/ lib/   shared client code (query client, key factory, cn)
+  server/          app.ts composition root, shared/<aws-service>, modules/<domain>
+  lambda/          ingestion and DLQ entry points — thin, call a service
+  contracts.ts     shared API schemas
 ```
 
-Folders are created together with real content. Where each of them will go is listed in [AGENTS.md](./AGENTS.md). `@/*` resolves to `src/*`.
-
-`src/lambda/` holds the Lambda entry points that `pnpm build:lambda` bundles; AWS itself is configured outside the repository.
-
-`src/server/modules/ingestion/chunker/chunker.ts` splits a Markdown document into retrieval chunks of about 450 tokens. The splitting is `@langchain/textsplitters`; the module adds the two things that splitter does not return and citations need — the chunk's line range in the original, recovered by locating each chunk in the source, and the heading breadcrumb above it, taken from the remark syntax tree.
-
-Its limits, all covered by tests in `chunker.test.ts`:
-
-- **Tables and fenced code blocks are split** when they exceed the chunk size. A later piece of a table arrives without its header row, and a piece of a fence can be unclosed.
-- **A chunk's breadcrumb describes its first line only.** A chunk that spans several sections is cited under the heading it starts in.
-- **Images and raw HTML are indexed, not ignored**, so an HTML comment in a document reaches the model.
-
-The original always stays in S3 and is read back by line range.
-
-`eval/docs/` is the corpus everything is measured against: five Markdown documents and a manifest of planted facts, written by a seeded generator.
-
-```bash
-pnpm eval:docs
-```
-
-The documents themselves are **not committed** — they are 2.7 MB of generated Markdown, and the generator reproduces them byte for byte from a fixed seed. What is committed is the generator and `manifest.json`, which records every planted fact with its file and line range, so the expected answers are reviewable without running anything.
-
-Run `pnpm eval:docs` once after cloning. Until you do, the chunker's corpus test reports itself as skipped rather than failing.
-
-## No database: where document state lives
-
-There is no database. A document's state is one small JSON object in the same bucket as the file, and `GET /api/files` builds the list by reading that prefix one page at a time.
-
-The key is `status/{inverted uploadedAt}-{fileId}.json`. S3 returns keys in one order only — ascending lexicographic — and a listing carries no object contents, so sorting on a field inside the objects would mean reading every one of them before showing the first row. Subtracting the upload time from a fixed ceiling and zero-padding it puts the newest documents first in S3's own order, which makes `MaxKeys` + `ContinuationToken` a real page: one `ListObjectsV2` plus one `GetObject` per row shown, whatever the size of the library. The price is that the key can no longer be computed from a file id, so the upload form pins it into the original's metadata as `x-amz-meta-status-key` for the ingestion worker to read back.
-
-The queue does not hold this state and cannot. SQS carries the instruction "this file needs processing": a message is deleted once the worker succeeds, cannot be looked up by file id, is invisible to everyone else while one consumer holds it, and expires after at most 14 days. The status object answers a different question — what a document is — and has to keep answering it long after the work is done.
-
-What makes an object usable as state here is S3's conditional writes. Creating a status uses `If-None-Match: *`, so a second write for the same id loses instead of overwriting. Moving one to `ready` or `failed` uses `If-Match: <etag>`, so when the ingestion worker and the dead-letter handler both try to close the same file, exactly one wins and the other is told its copy was stale. That is the compare-and-swap a conditional `UpdateItem` would otherwise provide.
-
-The costs are real, and they are what would push this to DynamoDB:
-
-- Only one ordering is possible — the one baked into the key. Sorting the table by name or by size would mean reading the whole prefix again.
-- Nothing can be queried. "Show me the failed documents" means reading all of them.
-- No atomic counter, which is why the file-count limit is best effort rather than a reservation.
-- No TTL, no secondary index, no transaction spanning two documents.
-
-At the stated limits — 30 documents in the library, 5 per upload, 5 MB each, one shared environment without accounts — none of those bite, and the bucket that already stores the file stores its state without a second service, a second IAM surface or a second bill. The point at which this stops being true is a corpus large enough that listing becomes a page-load cost, or per-user libraries, or needing to select by status.
-
-## Rendering
-
-Standard TanStack Start SSR: the server renders the page shell and the browser hydrates it. There is no SPA mode and no React Server Components.
-
-The locale is part of the URL (`/` for English, `/de/` for German). The router de-localizes the URL before matching routes and localizes it again on the way to history, so route files never spell out a locale segment. `src/server.ts` wraps the Start handler in Paraglide's middleware, which is what makes `getLocale()` return the right locale during server rendering.
-
-Application data will be fetched with ordinary browser queries through TanStack Query. There is deliberately no prefetching in route loaders and no server-side data loading at this stage. The `QueryClient` is built by a factory inside router creation, so each server request gets its own cache and the browser keeps one instance for the lifetime of the router.
+`@/*` resolves to `src/*`. Conventions live in [AGENTS.md](./AGENTS.md).
 
 ## Evaluation
 
-`eval/` holds a rerunnable evaluation of the deployed environment. It is an HTTP client of `/api/chat` and `/api/files` and shares no code with the server beyond `src/contracts.ts`, so it measures what a browser would get rather than what the local checkout does.
-
-`eval/questions.json` holds 20 questions built from the corpus manifest: every category the spec names (exact identifier, prose, list, code, table, single- and multi-passage, cross-document, conflict, unanswerable, prompt injection), three passages spread over the beginning, middle and end of the 300K-word document, two questions the corpus deliberately cannot answer, and one that quotes the planted injection block. Every expected passage is a line range the manifest planted — `eval/questions.test.ts` fails if one is not.
+`eval/` is an HTTP client of the deployed app, not of the local checkout. It asks 20 questions built from the corpus manifest and writes `eval/results.md`.
 
 ```bash
-EVAL_BASE_URL=https://REDACTED.cloudfront.net RERANK_SCORE_FLOOR=0.2 pnpm eval
+pnpm eval:docs    # once after cloning — the 2.7 MB corpus is generated, not committed
+EVAL_BASE_URL=https://REDACTED.cloudfront.net pnpm eval
 ```
 
-The run is **never** part of `pnpm check`: it costs Bedrock invocations and needs a deployed environment. Without `EVAL_BASE_URL` the suite skips itself and only the pure unit tests run. `pnpm eval:html` writes a vitest HTML report into the gitignored `eval/report/` (vitest installs `@vitest/ui` on first use).
+The environment must hold exactly one `ready` copy of each of the five documents; `beforeAll` fails the suite otherwise. Retrieval, citation and abstention outcomes are computed — answer correctness and claim support stay `pending_review` until a person fills them in.
 
-### A clean corpus first
+The run is never part of `pnpm check`: it costs Bedrock invocations. Without `EVAL_BASE_URL` only the pure unit tests run.
 
-The environment must hold exactly one ready copy of each of the five documents — a second copy doubles the evidence pool and a still-processing one is not searchable. `beforeAll` checks that and fails the whole suite before a single question is asked.
+## Deploy
 
-1. Reset the corpus: empty the documents bucket and recreate the vector index (`.planning/aws/SETUP.md`, Step 12).
-2. Upload the five files from `eval/docs/` through the UI once and wait until all are `ready`.
-3. Run the command above, then review `eval/results.md`.
-
-### What is measured and what is not
-
-`eval/results.md` is the single result: a summary row per question, aggregates, and a detail section per question with the answer, the evidence, the citations and the raw `rag.result`. Every number in it is measured by the run except the Bedrock prices, which are dated assumptions in `eval/pricing.ts` and labelled as such.
-
-Retrieval, citation and abstention outcomes are computed. **Semantic quality never is.** The three right-hand columns — answer correctness, claim support, confidence usefulness — stay `pending_review` until a person reads the detail section and decides them; the evaluation is not finished until none are left. A run that reaches `pending_review` only means nothing mechanical went wrong.
-
-A failed question is visible rather than hidden: a non-2xx response, a network error, a 120-second timeout or a stream that ends without `rag.result` fails that question's test with an explicit outcome, and the remaining questions still run.
-
-## Working in this repository
-
-Add a shadcn component only when something uses it, one at a time:
-
-```bash
-pnpm dlx shadcn@latest add button
-```
-
-The registry currently emits `import { cn } from "cn"`; rewrite it to `@/lib/utils` — the `cn` package is intentionally not a dependency, so ESLint and `tsc` catch a forgotten rewrite.
-
-### Translations
-
-UI strings live in `messages/en.json` and `messages/de.json` and are read through `m.*`:
-
-```tsx
-import { m } from "@/paraglide/messages"
-
-;<h1>{m.app_title()}</h1>
-```
-
-Add a key to **every** catalogue, then regenerate:
-
-```bash
-pnpm messages
-```
-
-`src/paraglide/` is compiled output — it is not committed and `pnpm install` regenerates it, so a fresh clone can run `pnpm typecheck` and `pnpm lint` straight away. `pnpm dev` and `pnpm build` recompile it as well. A new locale is added to `project.inlang/settings.json` plus its own `messages/<locale>.json`.
-
-### Devtools
-
-The TanStack devtools panel (Router + React Query) is mounted in `src/routes/__root.tsx` and shows up only while developing: `@tanstack/devtools-vite` strips it out of the production build.
-
-### Commits
-
-Commit messages follow Conventional Commits, checked by commitlint:
-
-```
-chore: configure project tooling
-```
-
-Conventions for agents — structure, the client/server boundary, the Query pattern — live in [AGENTS.md](./AGENTS.md); [CLAUDE.md](./CLAUDE.md) adds only what is specific to Claude Code.
+One environment, `develop`. Its AWS resources are created by hand with the AWS CLI outside this repository; code reaches it through [GitHub Actions](./.github/workflows/deploy-develop.yml) on every push to `develop` — check, build, `update-function-code`, asset sync, CloudFront invalidation. CI never reconfigures infrastructure.
 
 ## Reused from other repositories
 
-Both sources are MIT-licensed, © Vadym Haidai.
-
-- [react-shadcn-ts-template](https://github.com/vadimgaidai/react-shadcn-ts-template) @ `d2d4f4abf5a6c832cd81f48be3d48f5284bdbbc8` — code-quality setup (ESLint rule set, Prettier, Stylelint, EditorConfig, Husky + lint-staged + commitlint), the shadcn token approach, and `createQueryKeyFactory` (`src/shared/lib/react-query/query-key-factory.ts` → `src/lib/query/query-key-factory.ts`). The template is a React Router SPA on Feature-Sliced Design; its `package.json`, Vite SPA config, routing and FSD layout were **not** carried over, and the FSD paths and rules were removed from the ESLint config.
-- [react-feature-kit](https://github.com/vadimgaidai/react-feature-kit) @ `5de0d6b91a5f227e7d8a8eca894babf7b7f86e08` — the `react-feature-workflow` Claude Code plugin, enabled at project scope in `.claude/settings.json`. The `feature-sliced-design` plugin is deliberately not enabled.
-
-## Next
-
-The deployment shape is the application and its API on Lambda, documents in S3, and ingestion as a separate Lambda behind SQS — one `develop` environment, deployed on push to `develop`. Cloning, installing and checking this repository creates no AWS resources.
-
-The next stage is the evaluation run itself: a corpus reset, `pnpm eval` against the deployed environment, and a reviewed `eval/results.md` with the manual columns filled in.
+Both MIT, © Vadym Haidai: [react-shadcn-ts-template](https://github.com/vadimgaidai/react-shadcn-ts-template) (code-quality setup, shadcn tokens, `createQueryKeyFactory`) and [react-feature-kit](https://github.com/vadimgaidai/react-feature-kit) (the `react-feature-workflow` Claude Code plugin).

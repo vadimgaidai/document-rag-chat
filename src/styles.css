@@ -37,6 +37,11 @@
   --sidebar-accent-foreground: oklch(21% 0.006 285.885deg);
   --sidebar-border: oklch(92% 0.004 286.32deg);
   --sidebar-ring: oklch(87.1% 0.006 286.286deg);
+  --color-1: oklch(68% 0.17 15deg);
+  --color-2: oklch(68% 0.17 321deg);
+  --color-3: oklch(68% 0.17 241deg);
+  --color-4: oklch(68% 0.17 210deg);
+  --color-5: oklch(68% 0.17 130deg);
 }
 
 .dark {
@@ -113,6 +118,46 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --max-width-container: 1000px;
+  --animate-orbit: orbit calc(var(--duration) * 1s) linear infinite;
+  --animate-aurora: aurora 8s ease-in-out infinite alternate;
+
+  @keyframes orbit {
+    0% {
+      transform: rotate(0deg) translateY(calc(var(--radius) * 1px)) rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg) translateY(calc(var(--radius) * 1px)) rotate(-360deg);
+    }
+  }
+
+  @keyframes aurora {
+    0% {
+      background-position: 0% 50%;
+      transform: rotate(-5deg) scale(0.9);
+    }
+
+    25% {
+      background-position: 50% 100%;
+      transform: rotate(5deg) scale(1.1);
+    }
+
+    50% {
+      background-position: 100% 50%;
+      transform: rotate(-3deg) scale(0.95);
+    }
+
+    75% {
+      background-position: 50% 0%;
+      transform: rotate(3deg) scale(1.05);
+    }
+
+    100% {
+      background-position: 0% 50%;
+      transform: rotate(-5deg) scale(0.9);
+    }
+  }
 }
 
 @layer base {
