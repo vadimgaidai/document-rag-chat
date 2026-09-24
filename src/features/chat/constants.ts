@@ -15,6 +15,8 @@ export const MARKER_PATTERN = /^\[c\d+\]$/
 
 export const GENERATION_MODEL_LABEL = "Amazon Nova Lite"
 
+export const CHAT_DISCLAIMER_STORAGE_KEY = "document-workbench.chat-disclaimer"
+
 export const BREADCRUMB_SEPARATOR = " › "
 export const BREADCRUMB_MAX_CHARS = 40
 export const CITATION_LABEL_SEPARATOR = " · "

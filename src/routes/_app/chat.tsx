@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { MessagesSquare } from "lucide-react"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChatPanel, GENERATION_MODEL_LABEL } from "@/features/chat"
+import { ChatDisclaimerDialog, ChatPanel } from "@/features/chat"
 import { m } from "@/paraglide/messages"
 
 const ChatPage = () => (
@@ -13,13 +13,11 @@ const ChatPage = () => (
         {m.chat_title()}
       </CardTitle>
       <CardDescription>{m.chat_subtitle()}</CardDescription>
-      <p className="text-xs text-muted-foreground">
-        {m.chat_model_disclaimer({ model: GENERATION_MODEL_LABEL })}
-      </p>
     </CardHeader>
     <CardContent className="flex flex-1 flex-col">
       <ChatPanel />
     </CardContent>
+    <ChatDisclaimerDialog />
   </Card>
 )
 
