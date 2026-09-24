@@ -1,3 +1,17 @@
+<!-- intent-skills:start -->
+
+## Skill Loading
+
+Before editing files for a substantial task:
+
+- Run `pnpm dlx @tanstack/intent@latest list` from the workspace root to see available local skills.
+- If a listed skill matches the task, run `pnpm dlx @tanstack/intent@latest load <package>#<skill>` before changing files.
+- Use the loaded `SKILL.md` guidance while making the change.
+- Monorepos: when working across packages, run the skill check from the workspace root and prefer the local skill for the package being changed.
+- Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
+
+<!-- intent-skills:end -->
+
 # AGENTS.md
 
 Project rules for `document-rag-chat` (UI name: **Document Workbench**). This file is the source of truth for conventions; other agent files link here instead of repeating them.
@@ -25,9 +39,10 @@ Stack, install steps and current status: [README](./README.md).
 | `pnpm format` / `pnpm format:check` | Prettier |
 | `pnpm test` / `pnpm test:watch` | Vitest |
 | `pnpm ingest:local <fileId>` | Runs ingestion against the real bucket, skipping the queue — needs AWS credentials |
+| `pnpm eval` | The evaluation suite (`vitest.eval.config.ts`). Asks `EVAL_BASE_URL` 20 questions and writes `eval/results.md`; without that variable only the pure `eval/*.test.ts` run |
 | `pnpm check` | format:check → lint → stylelint → typecheck → test |
 
-`pnpm check` is the verification command.
+`pnpm check` is the verification command. It never runs the evaluation: the root `vitest.config.ts` includes `src/**` only, so `pnpm test` touches no `eval/` file and makes no network call. `pnpm eval` costs Bedrock invocations and is run by hand against a deployed environment, after a corpus reset — the procedure is in the [README](./README.md#evaluation).
 
 **Nothing run locally in this repository touches AWS, and no infrastructure lives in it.** No infrastructure-as-code tool, no `infra/` folder, no local deploy script. There is one environment, `develop`. Its AWS resources are created, changed and deleted by the user by hand with the AWS CLI, following the step-by-step procedure kept outside the repository in the gitignored `.planning/aws/SETUP.md`. Code reaches that environment only through `.github/workflows/deploy-develop.yml`, on every push to `develop`: `pnpm check`, build, `update-function-code` for the three functions, asset sync, CloudFront invalidation — with a GitHub OIDC role scoped to exactly those actions. When a step changes what the infrastructure must look like (a timeout, an env var, an IAM statement, a new resource), the change goes into `SETUP.md` as the exact command, and the user applies it; CI never reconfigures anything.
 
@@ -64,7 +79,7 @@ Laid out the way a NestJS application is, minus the framework. Three levels and 
 | --- | --- |
 | `app.ts` | The `AppModule`: the one place that knows how a service is assembled. It exports factories (`createDocumentsService`, `createIngestionService`), not instances, so nothing runs at import time; a controller calls its factory once, at module level, and nothing else calls `new` on a service |
 | `shared/` | `@Global()` modules — wrappers over one AWS service each, knowing nothing about documents: `config/`, `s3/`, `sqs/`, `bedrock/`, `s3-vectors/`, plus `utils/` for helpers with no domain |
-| `modules/` | Domain modules: `documents/` (upload form, status objects and their transitions, the S3 key scheme) and `ingestion/` (the pipeline; its `chunker/` sub-folder holds the splitter, the `chunks.jsonl` format and their fixtures) |
+| `modules/` | Domain modules: `documents/` (upload form, status objects and their transitions, the S3 key scheme, the line window a citation opens), `ingestion/` (the pipeline; its `chunker/` sub-folder holds the splitter, the `chunks.jsonl` format and their fixtures), `retrieval/` (corpus cache, BM25, fusion, rerank, evidence selection) and `chat/` (history window, prompt, the model call, marker resolution and the two `rag.*` events) |
 
 Controllers live outside `src/server/` and stay thin: `src/routes/api/*` (HTTP) and `src/lambda/*` (Lambda) parse the input and call one service method.
 
@@ -74,7 +89,7 @@ Modules import each other by full path (`@/server/modules/documents/documents.ke
 
 Known cost of the single root: `app.ts` statically imports every service, so every Lambda bundle that imports it carries the chunker's dependencies (`@langchain/core`, `langsmith`, `remark` — ~900 KB) even when it only calls `createDocumentsService`. Measured and accepted; a root per entry point would remove it if it ever matters.
 
-A feature under `src/features/` is anything that belongs to one particular layout or page and nothing else — a dashboard shell and a landing page count, same as a domain feature like chat or documents. `src/components/` holds only what's genuinely cross-cutting; when a component turns out to be used by just one feature, it moves into that feature instead of staying "global" by default. Inside a small feature, files sit next to each other; subfolders appear only when the feature actually grows. Local hooks stay next to their feature. UI is imported from the component file directly (`@/components/ui/card`), never from a barrel. The `@/*` alias maps to `src/*`.
+A feature under `src/features/` is anything that belongs to one particular layout or page and nothing else — a dashboard shell and a landing page count, same as a domain feature like chat or documents. `src/components/` holds only what's genuinely cross-cutting; when a component turns out to be used by just one feature, it moves into that feature instead of staying "global" by default. Inside a feature, files are grouped by kind: `components/`, `hooks/`, `api/` (queries, mutations, fetchers), `utils/` (pure helpers), plus `constants.ts`, `types.ts` and an `index.ts` that lists the feature's public surface — files inside the feature import each other by full path, never through that barrel. A folder exists only once it has a file. UI is imported from the component file directly (`@/components/ui/card`), never from a barrel. The `@/*` alias maps to `src/*`.
 
 ## Client / server boundary
 
@@ -155,4 +170,4 @@ Conventional Commits, enforced by commitlint: `type: subject`, e.g. `chore: conf
 
 ## Out of scope right now
 
-RAG and evaluation are not implemented and are not part of setup-level changes. Don't add a backend framework, a monorepo, a database, auth, i18n or a global state manager.
+Don't add a backend framework, a monorepo, a database, auth, i18n or a global state manager.

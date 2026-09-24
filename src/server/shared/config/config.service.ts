@@ -26,4 +26,12 @@ export class ConfigService {
   get embeddingsModelId(): string {
     return requireEnv("EMBEDDINGS_MODEL_ID")
   }
+
+  get generationModelId(): string {
+    return requireEnv("GENERATION_MODEL_ID")
+  }
+
+  get rerankModelArn(): string {
+    return `arn:aws:bedrock:${requireEnv("AWS_REGION")}::foundation-model/${requireEnv("RERANK_MODEL_ID")}`
+  }
 }

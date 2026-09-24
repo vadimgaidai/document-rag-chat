@@ -1,3 +1,4 @@
+import { BedrockAgentRuntimeClient, RerankCommand } from "@aws-sdk/client-bedrock-agent-runtime"
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime"
 import pThrottle from "p-throttle"
 import { z } from "zod"
@@ -11,9 +12,10 @@ import {
   EMBED_RATE_INTERVAL_MS,
   EMBED_REQUESTS_PER_SECOND,
   EMBEDDING_DIMENSIONS,
+  RERANK_MAX_ATTEMPTS,
 } from "./bedrock.constants"
 
-import type { TEmbeddings, TEmbedOptions } from "./bedrock.types"
+import type { TEmbeddings, TEmbedOptions, TRerankDocument, TRerankScore } from "./bedrock.types"
 
 const titanResponseSchema = z.object({
   embedding: z.array(z.number()).length(EMBEDDING_DIMENSIONS),
@@ -22,6 +24,9 @@ const titanResponseSchema = z.object({
 
 export class BedrockService {
   private readonly client: BedrockRuntimeClient
+
+  // Only the chat path reranks; ingestion never builds this client.
+  private rerankClient: BedrockAgentRuntimeClient | null = null
 
   // The quota is per account and region, so one limiter guards every call made
   // through this instance, whichever batch it belongs to
@@ -59,6 +64,54 @@ export class BedrockService {
         0,
       ),
     }
+  }
+
+  async embedQuery(text: string): Promise<number[]> {
+    const { embeddings } = await this.embed([text])
+    return embeddings[0]
+  }
+
+  // Cohere Rerank scores the whole pile against the question; the caller pairs
+  // the scores back to its documents by id.
+  async rerank(query: string, documents: readonly TRerankDocument[]): Promise<TRerankScore[]> {
+    if (documents.length === 0) {
+      return []
+    }
+
+    const response = await this.rerankRuntime().send(
+      new RerankCommand({
+        queries: [{ type: "TEXT", textQuery: { text: query } }],
+        sources: documents.map((document) => ({
+          type: "INLINE",
+          inlineDocumentSource: { type: "TEXT", textDocument: { text: document.text } },
+        })),
+        rerankingConfiguration: {
+          type: "BEDROCK_RERANKING_MODEL",
+          bedrockRerankingConfiguration: {
+            numberOfResults: documents.length,
+            modelConfiguration: { modelArn: this.config.rerankModelArn },
+          },
+        },
+      }),
+    )
+
+    return (response.results ?? []).flatMap((result) => {
+      const document = result.index === undefined ? undefined : documents[result.index]
+
+      return document && result.relevanceScore !== undefined
+        ? [{ id: document.id, score: result.relevanceScore }]
+        : []
+    })
+  }
+
+  private rerankRuntime(): BedrockAgentRuntimeClient {
+    this.rerankClient ??= new BedrockAgentRuntimeClient({
+      region: this.config.region,
+      retryMode: "adaptive",
+      maxAttempts: RERANK_MAX_ATTEMPTS,
+    })
+
+    return this.rerankClient
   }
 
   private async embedOne(modelId: string, text: string) {

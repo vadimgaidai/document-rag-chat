@@ -26,3 +26,8 @@ export type TKeyPage = {
   keys: string[]
   nextCursor: string | null
 }
+
+export type TKeyEtag = {
+  key: string
+  etag: string
+}

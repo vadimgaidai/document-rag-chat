@@ -5,6 +5,7 @@ import type { DocumentsService } from "@/server/modules/documents/documents.serv
 import type { BedrockService } from "@/server/shared/bedrock/bedrock.service"
 import type { S3Service } from "@/server/shared/s3/s3.service"
 import type { S3VectorsService } from "@/server/shared/s3-vectors/s3-vectors.service"
+import { log } from "@/server/shared/utils/log"
 
 import { chunkMarkdown, normalizeNewlines } from "./chunker/chunker"
 import { CHUNKS_CONTENT_TYPE } from "./chunker/chunker.constants"
@@ -14,8 +15,6 @@ import { EMBED_CONCURRENCY, EMBED_GROUP_SIZE, HEADING_SEPARATOR } from "./ingest
 import type { TChunk } from "./chunker/chunker.types"
 import type { TIngestOutcome } from "./ingestion.types"
 
-const log = (fields: Record<string, unknown>) => console.log(JSON.stringify(fields))
-
 const groupsOf = <T>(items: readonly T[], size: number): T[][] => {
   const groups: T[][] = []
   for (let start = 0; start < items.length; start += size) {
@@ -24,8 +23,6 @@ const groupsOf = <T>(items: readonly T[], size: number): T[][] => {
   return groups
 }
 
-// The breadcrumb travels with the text so a chunk read out of context still
-// says which section it came from.
 const embeddingInput = (chunk: TChunk) =>
   chunk.headingPath.length > 0
     ? `${chunk.headingPath.join(HEADING_SEPARATOR)}\n\n${chunk.text}`
@@ -39,8 +36,6 @@ export class IngestionService {
     private readonly documents: DocumentsService,
   ) {}
 
-  // One document, one attempt. Anything transient throws so the queue re-runs
-  // it; the only deterministic failure is a document with nothing to index.
   async ingest(fileId: string): Promise<TIngestOutcome> {
     const startedAt = Date.now()
 
@@ -127,9 +122,6 @@ export class IngestionService {
       inputTokens += result.inputTokens
     }
 
-    // Publishing a document whose vectors are incomplete is the failure the
-    // conditional-write design exists to prevent, so the count is checked
-    // before the status is touched.
     if (written.size !== chunks.length || chunks.some((chunk) => !written.has(chunk.seq))) {
       throw new Error(
         `${fileId}: embedded ${String(written.size)} of ${String(chunks.length)} chunks`,

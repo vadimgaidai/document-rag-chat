@@ -15,6 +15,7 @@ import type { ConfigService } from "@/server/shared/config/config.service"
 import { NOT_FOUND_STATUS, PRECONDITION_STATUS } from "./s3.constants"
 
 import type {
+  TKeyEtag,
   TKeyPage,
   TListPageOptions,
   TPutJsonOptions,
@@ -154,6 +155,23 @@ export class S3Service {
       keys: (response.Contents ?? []).flatMap((object) => (object.Key ? [object.Key] : [])),
       nextCursor: response.NextContinuationToken ?? null,
     }
+  }
+
+  async listWithEtags(prefix: string): Promise<TKeyEtag[]> {
+    const objects: TKeyEtag[] = []
+
+    for await (const page of paginateListObjectsV2(
+      { client: this.client },
+      { Bucket: this.bucket, Prefix: prefix },
+    )) {
+      for (const object of page.Contents ?? []) {
+        if (object.Key) {
+          objects.push({ key: object.Key, etag: object.ETag ?? "" })
+        }
+      }
+    }
+
+    return objects
   }
 
   async countKeys(prefix: string): Promise<number> {

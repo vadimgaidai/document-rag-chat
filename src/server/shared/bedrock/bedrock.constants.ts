@@ -12,3 +12,7 @@ export const EMBED_RATE_INTERVAL_MS = 1000
 export const EMBED_MAX_ATTEMPTS = 8
 
 export const DEFAULT_CONCURRENCY = 8
+
+// A question waits on this call, so a throttled rerank is retried once and then
+// gives up rather than holding the request open.
+export const RERANK_MAX_ATTEMPTS = 2

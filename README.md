@@ -4,7 +4,7 @@ A personal workspace for exploring document search and AI chat with TanStack Sta
 
 ## Status
 
-Documents can be uploaded, listed and indexed. Asking questions about them is not built yet.
+Documents can be uploaded, listed, indexed and asked about. Every answer cites the passages it rests on, and each citation opens the original at those lines.
 
 **Implemented**
 
@@ -26,13 +26,27 @@ Documents can be uploaded, listed and indexed. Asking questions about them is no
 
   A document that is empty or contains only whitespace is the only content that fails deterministically. Anything else — an images-only file, an oversized code fence — is indexed, with the chunker limits listed below.
 
+- Chat with retrieval and citations. `POST /api/chat` takes the browser's conversation (TanStack AI's AG-UI shape), keeps only user and assistant text, and windows it to whole turns; the latest question is never trimmed and is rejected above 4,000 characters (400), the whole history is capped at about 24,000 characters (older turns are dropped) and the body at 256 KB (413). The question is embedded and searched two ways over the published documents only — S3 Vectors top-10 and a BM25 index over the chunk texts top-10 — merged by reciprocal rank fusion, rescored by Bedrock Rerank and cut to at most five passages above a score floor. Those passages go to Nova Lite as numbered evidence blocks; the model answers in plain text with `[cN]` markers, which the server resolves back to file, heading and line range. The browser receives `rag.evidence` before generation and `rag.result` after it, renders the markers as chips and lists the sources under the answer; a chip opens the original document at the cited lines through `GET /api/files/:id/context`.
+
+  Abstention is one rule in two places. No passage above the floor → the server streams the sentence "I could not find sufficient support in the documents" itself and never calls the model. Passages present but the model still answers with that sentence and no marker → the answer counts as an abstention too, with real generation cost. The sentence next to cited claims is a partial answer, not an abstention. A marker the model invented is dropped from the citations, reported in `rag.result`, logged, and rendered as plain text.
+
+  The corpus the searches run over is cached on the warm Lambda and keyed by the ETags of the `status/` listing, so one LIST per question tells whether anything was published; a document becomes searchable on the first request after its status turns `ready`.
+
 - `GET /api/health` and the two Lambda handlers for the ingestion queue. One AWS environment (`develop`), set up by hand outside the repository; a push to the `develop` branch deploys code into it through [GitHub Actions](./.github/workflows/deploy-develop.yml). Nothing run locally creates, changes or deploys anything in AWS.
+
+- Answer controls. When the text ends, the server splits it into claims — sentences and list items, with a trailing `[cN]` bound back to the sentence it follows — and records each claim's character range in the answer. Quotations are checked against **the sources that claim itself cited**, never against the answer's other citations, so a phrase confirmed from a passage the sentence did not stand on counts as unverified. Three integrity checks run alongside: an invented marker, an evidence block copied into the answer, an empty answer.
+
+  Those outputs, and nothing else, decide a confidence of `supported`, `partially_supported` or `unsupported`. It is a statement about the mechanics of the answer — how much of it carries a resolved citation and whether its quotations are really in those sources — not about whether the cited text is true, so an answer can be confidently wrong and still come out "supported". That is why it is **not** shown as a badge over the answer: a single verdict on screen reads as "this answer is right", which none of these checks can tell. It travels in `rag.result` and is a column of the evaluation instead.
+
+  What the browser does show is specific and local: sentences with no citation are underlined with a dash at the offsets the server computed (the text is never split a second time), a source whose quotation could not be found carries a warning icon, and an integrity flag becomes a line under the answer. All of it appears only with `rag.result`, so a streaming, stopped or interrupted answer is never annotated.
+
+- The evaluation harness: 20 questions built from the corpus manifest, an SSE runner that classifies every transport outcome, auto-computed retrieval, citation and abstention metrics, and `pnpm eval` against a deployed environment. See [Evaluation](#evaluation).
 
 **Not implemented**
 
-- Chat, retrieval, streaming answers and the source viewer. The vectors are written but nothing queries them yet.
+- Claim-support judging by a second model, and calibrated confidence numbers. Whether an answer is actually right is the manual column of the evaluation.
 - Deleting documents or vectors, and reprocessing a document that failed — recovery is re-uploading the file.
-- Evaluation fixtures, questions and results.
+- A reviewed `eval/results.md`: the harness runs, but the run against the deployed environment and the manual answer-quality columns are still outstanding.
 
 Nothing in the repository requires AWS credentials or a paid API to install, run or check.
 
@@ -140,6 +154,34 @@ The locale is part of the URL (`/` for English, `/de/` for German). The router d
 
 Application data will be fetched with ordinary browser queries through TanStack Query. There is deliberately no prefetching in route loaders and no server-side data loading at this stage. The `QueryClient` is built by a factory inside router creation, so each server request gets its own cache and the browser keeps one instance for the lifetime of the router.
 
+## Evaluation
+
+`eval/` holds a rerunnable evaluation of the deployed environment. It is an HTTP client of `/api/chat` and `/api/files` and shares no code with the server beyond `src/contracts.ts`, so it measures what a browser would get rather than what the local checkout does.
+
+`eval/questions.json` holds 20 questions built from the corpus manifest: every category the spec names (exact identifier, prose, list, code, table, single- and multi-passage, cross-document, conflict, unanswerable, prompt injection), three passages spread over the beginning, middle and end of the 300K-word document, two questions the corpus deliberately cannot answer, and one that quotes the planted injection block. Every expected passage is a line range the manifest planted — `eval/questions.test.ts` fails if one is not.
+
+```bash
+EVAL_BASE_URL=https://REDACTED.cloudfront.net RERANK_SCORE_FLOOR=0.2 pnpm eval
+```
+
+The run is **never** part of `pnpm check`: it costs Bedrock invocations and needs a deployed environment. Without `EVAL_BASE_URL` the suite skips itself and only the pure unit tests run. `pnpm eval:html` writes a vitest HTML report into the gitignored `eval/report/` (vitest installs `@vitest/ui` on first use).
+
+### A clean corpus first
+
+The environment must hold exactly one ready copy of each of the five documents — a second copy doubles the evidence pool and a still-processing one is not searchable. `beforeAll` checks that and fails the whole suite before a single question is asked.
+
+1. Reset the corpus: empty the documents bucket and recreate the vector index (`.planning/aws/SETUP.md`, Step 12).
+2. Upload the five files from `eval/docs/` through the UI once and wait until all are `ready`.
+3. Run the command above, then review `eval/results.md`.
+
+### What is measured and what is not
+
+`eval/results.md` is the single result: a summary row per question, aggregates, and a detail section per question with the answer, the evidence, the citations and the raw `rag.result`. Every number in it is measured by the run except the Bedrock prices, which are dated assumptions in `eval/pricing.ts` and labelled as such.
+
+Retrieval, citation and abstention outcomes are computed. **Semantic quality never is.** The three right-hand columns — answer correctness, claim support, confidence usefulness — stay `pending_review` until a person reads the detail section and decides them; the evaluation is not finished until none are left. A run that reaches `pending_review` only means nothing mechanical went wrong.
+
+A failed question is visible rather than hidden: a non-2xx response, a network error, a 120-second timeout or a stream that ends without `rag.result` fails that question's test with an explicit outcome, and the remaining questions still run.
+
 ## Working in this repository
 
 Add a shadcn component only when something uses it, one at a time:
@@ -193,4 +235,4 @@ Both sources are MIT-licensed, © Vadym Haidai.
 
 The deployment shape is the application and its API on Lambda, documents in S3, and ingestion as a separate Lambda behind SQS — one `develop` environment, deployed on push to `develop`. Cloning, installing and checking this repository creates no AWS resources.
 
-The next stage is retrieval over the vectors ingestion writes, and the chat that reads it.
+The next stage is the evaluation run itself: a corpus reset, `pnpm eval` against the deployed environment, and a reviewed `eval/results.md` with the manual columns filled in.

@@ -11,6 +11,8 @@ import { createQueryKeyFactory } from "@/lib/query/query-key-factory"
 
 export const documentKeys = createQueryKeyFactory(DOCUMENTS_ENTITY, (all) => ({
   list: (cursor?: string) => [...all(), DOCUMENTS_QUERY_KEYS.LIST, cursor ?? null] as const,
+  context: (fileId: string, from: number, to: number) =>
+    [...all(), DOCUMENTS_QUERY_KEYS.CONTEXT, fileId, from, to] as const,
 }))
 
 export const documentQueries = {
@@ -24,5 +26,12 @@ export const documentQueries = {
         )
           ? PROCESSING_POLL_INTERVAL_MS
           : false,
+    }),
+
+  context: (fileId: string, from: number, to: number) =>
+    queryOptions({
+      queryKey: documentKeys.context(fileId, from, to),
+      queryFn: ({ signal }) => documentsApi.context(fileId, { from, to }, signal),
+      staleTime: Infinity,
     }),
 }

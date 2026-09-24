@@ -6,7 +6,7 @@ dist
 dist-ssr
 .output
 .nitro
-
+.vitest
 
 .tanstack
 .vinxi
@@ -30,3 +30,6 @@ coverage
 
 .planning
 eval/docs/*.md
+
+# `pnpm eval:html` output — the committed result is eval/results.md
+eval/report

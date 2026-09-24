@@ -6,7 +6,14 @@ import {
   UPLOAD_CONTENT_TYPE,
   UPLOAD_URL_TTL_SECONDS,
 } from "@/contracts"
-import type { TDocument, TDocumentListRequest, TUploadRequest } from "@/contracts"
+import type {
+  TContextQuery,
+  TContextResponse,
+  TDocument,
+  TDocumentListRequest,
+  TUploadRequest,
+} from "@/contracts"
+import { normalizeNewlines } from "@/server/modules/ingestion/chunker/chunker"
 import type { S3Service } from "@/server/shared/s3/s3.service"
 import type { TPutResult } from "@/server/shared/s3/s3.types"
 
@@ -83,6 +90,36 @@ export class DocumentsService {
     const key = metadata?.[STATUS_KEY_METADATA]
 
     return key ? this.readStatus(key) : null
+  }
+
+  // The original is the ground truth a citation points at, so the window is
+  // cut from it with the chunker's own newline normalization — line numbers
+  // then match the ones the chunks carry.
+  async readContext(
+    fileId: string,
+    { from, to, pad }: TContextQuery,
+  ): Promise<TContextResponse | null> {
+    const current = await this.readStatusOfFile(fileId)
+    if (!current) {
+      return null
+    }
+
+    const source = await this.s3.getText(originalKey(fileId))
+    if (source === null) {
+      return null
+    }
+
+    const lines = normalizeNewlines(source).split("\n")
+    const start = Math.max(1, from - pad)
+    const end = Math.min(lines.length, to + pad)
+
+    return {
+      fileId,
+      name: current.document.name,
+      firstLine: start,
+      lines: lines.slice(start - 1, end),
+      focus: { from, to: Math.min(to, lines.length) },
+    }
   }
 
   transition(current: TStoredStatus, next: TStatusTransition): Promise<TPutResult> {

@@ -1,6 +1,3 @@
-// The feature's public surface. Files inside the feature import each other
-// directly — going through this barrel would make a cycle.
-
 export { documentsApi } from "@/features/documents/api/documents.api"
 export { useUploadDocument } from "@/features/documents/api/documents.mutations"
 export { documentKeys, documentQueries } from "@/features/documents/api/documents.queries"

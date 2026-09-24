@@ -14,9 +14,10 @@ import { Route as LandingRouteRouteImport } from './routes/_landing/route'
 import { Route as AppChatRouteImport } from './routes/_app/chat'
 import { Route as AppKnowledgeBaseRouteImport } from './routes/_app/knowledge-base'
 import { Route as LandingIndexRouteImport } from './routes/_landing/index'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiFilesRouteImport } from './routes/api/files'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
-import { Route as ApiSseProbeRouteImport } from './routes/api/sse-probe'
+import { Route as ApiFilesIdContextRouteImport } from './routes/api/files.$id.context'
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
@@ -41,6 +42,11 @@ const LandingIndexRoute = LandingIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LandingRouteRoute,
 } as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiFilesRoute = ApiFilesRouteImport.update({
   id: '/api/files',
   path: '/api/files',
@@ -51,27 +57,29 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiSseProbeRoute = ApiSseProbeRouteImport.update({
-  id: '/api/sse-probe',
-  path: '/api/sse-probe',
-  getParentRoute: () => rootRouteImport,
+const ApiFilesIdContextRoute = ApiFilesIdContextRouteImport.update({
+  id: '/$id/context',
+  path: '/$id/context',
+  getParentRoute: () => ApiFilesRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LandingIndexRoute
   '/chat': typeof AppChatRoute
   '/knowledge-base': typeof AppKnowledgeBaseRoute
-  '/api/files': typeof ApiFilesRoute
+  '/api/chat': typeof ApiChatRoute
+  '/api/files': typeof ApiFilesRouteWithChildren
   '/api/health': typeof ApiHealthRoute
-  '/api/sse-probe': typeof ApiSseProbeRoute
+  '/api/files/$id/context': typeof ApiFilesIdContextRoute
 }
 export interface FileRoutesByTo {
   '/': typeof LandingIndexRoute
   '/chat': typeof AppChatRoute
   '/knowledge-base': typeof AppKnowledgeBaseRoute
-  '/api/files': typeof ApiFilesRoute
+  '/api/chat': typeof ApiChatRoute
+  '/api/files': typeof ApiFilesRouteWithChildren
   '/api/health': typeof ApiHealthRoute
-  '/api/sse-probe': typeof ApiSseProbeRoute
+  '/api/files/$id/context': typeof ApiFilesIdContextRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -79,10 +87,11 @@ export interface FileRoutesById {
   '/_landing': typeof LandingRouteRouteWithChildren
   '/_app/chat': typeof AppChatRoute
   '/_app/knowledge-base': typeof AppKnowledgeBaseRoute
-  '/api/files': typeof ApiFilesRoute
+  '/api/chat': typeof ApiChatRoute
+  '/api/files': typeof ApiFilesRouteWithChildren
   '/api/health': typeof ApiHealthRoute
-  '/api/sse-probe': typeof ApiSseProbeRoute
   '/_landing/': typeof LandingIndexRoute
+  '/api/files/$id/context': typeof ApiFilesIdContextRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,35 +99,38 @@ export interface FileRouteTypes {
     | '/'
     | '/chat'
     | '/knowledge-base'
+    | '/api/chat'
     | '/api/files'
     | '/api/health'
-    | '/api/sse-probe'
+    | '/api/files/$id/context'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/chat'
     | '/knowledge-base'
+    | '/api/chat'
     | '/api/files'
     | '/api/health'
-    | '/api/sse-probe'
+    | '/api/files/$id/context'
   id:
     | '__root__'
     | '/_app'
     | '/_landing'
     | '/_app/chat'
     | '/_app/knowledge-base'
+    | '/api/chat'
     | '/api/files'
     | '/api/health'
-    | '/api/sse-probe'
     | '/_landing/'
+    | '/api/files/$id/context'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRouteRoute: typeof AppRouteRouteWithChildren
   LandingRouteRoute: typeof LandingRouteRouteWithChildren
-  ApiFilesRoute: typeof ApiFilesRoute
+  ApiChatRoute: typeof ApiChatRoute
+  ApiFilesRoute: typeof ApiFilesRouteWithChildren
   ApiHealthRoute: typeof ApiHealthRoute
-  ApiSseProbeRoute: typeof ApiSseProbeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -158,6 +170,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LandingIndexRouteImport
       parentRoute: typeof LandingRouteRoute
     }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/files': {
       id: '/api/files'
       path: '/api/files'
@@ -172,12 +191,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/sse-probe': {
-      id: '/api/sse-probe'
-      path: '/api/sse-probe'
-      fullPath: '/api/sse-probe'
-      preLoaderRoute: typeof ApiSseProbeRouteImport
-      parentRoute: typeof rootRouteImport
+    '/api/files/$id/context': {
+      id: '/api/files/$id/context'
+      path: '/$id/context'
+      fullPath: '/api/files/$id/context'
+      preLoaderRoute: typeof ApiFilesIdContextRouteImport
+      parentRoute: typeof ApiFilesRoute
     }
   }
 }
@@ -208,12 +227,24 @@ const LandingRouteRouteWithChildren = LandingRouteRoute._addFileChildren(
   LandingRouteRouteChildren,
 )
 
+interface ApiFilesRouteChildren {
+  ApiFilesIdContextRoute: typeof ApiFilesIdContextRoute
+}
+
+const ApiFilesRouteChildren: ApiFilesRouteChildren = {
+  ApiFilesIdContextRoute: ApiFilesIdContextRoute,
+}
+
+const ApiFilesRouteWithChildren = ApiFilesRoute._addFileChildren(
+  ApiFilesRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRouteRoute: AppRouteRouteWithChildren,
   LandingRouteRoute: LandingRouteRouteWithChildren,
-  ApiFilesRoute: ApiFilesRoute,
+  ApiChatRoute: ApiChatRoute,
+  ApiFilesRoute: ApiFilesRouteWithChildren,
   ApiHealthRoute: ApiHealthRoute,
-  ApiSseProbeRoute: ApiSseProbeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

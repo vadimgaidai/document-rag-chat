@@ -1,36 +1,16 @@
-// Content templates for the generated corpus. Data only: no randomness and no
-// I/O live here, so `generate.ts` stays the single place that decides what a
-// run produces.
-//
-// A template is a string with `{slot}` placeholders. `generate.ts` fills every
-// slot from the shared vocabulary below plus the pack's own `terms`.
-
 export type TPack = {
-  /** File stem, e.g. `01-handbook`. */
   readonly slug: string
-  /** The document's H1. */
   readonly title: string
-  /** Domain nouns, filled into the `{term}` slot. */
   readonly terms: readonly string[]
-  /** Section headings owned by this pack. */
   readonly sections: readonly string[]
-  /** Subsection headings owned by this pack. */
   readonly subsections: readonly string[]
-  /** Paragraph sentences; a paragraph is three to six of them. */
   readonly sentences: readonly string[]
-  /** Lead-in line of a list block. */
   readonly listIntros: readonly string[]
-  /** List item templates. */
   readonly listItems: readonly string[]
-  /** Three column headers of a table block. */
   readonly tableHeaders: readonly [string, string, string]
-  /** Row template; cells separated by `|` at fill time. */
   readonly tableRow: readonly [string, string, string]
-  /** Info string of a fenced code block. */
   readonly codeLang: string
-  /** Code body lines. */
   readonly codeLines: readonly string[]
-  /** Blockquote templates. */
   readonly quotes: readonly string[]
 }
 
@@ -79,8 +59,6 @@ export const REGIONS = [
   "sa-east-1",
 ] as const
 
-// Headings deliberately shared by several packs: repeated heading text across
-// files must not make a citation ambiguous.
 export const SHARED_SECTIONS = [
   "Overview",
   "Scope and limitations",

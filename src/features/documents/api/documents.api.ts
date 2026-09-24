@@ -1,7 +1,12 @@
 import queryString from "query-string"
 
-import { documentListResponseSchema, uploadResponseSchema } from "@/contracts"
+import {
+  contextResponseSchema,
+  documentListResponseSchema,
+  uploadResponseSchema,
+} from "@/contracts"
 import type {
+  TContextResponse,
   TDocumentListResponse,
   TPresignedPost,
   TUploadRequest,
@@ -19,6 +24,17 @@ export const documentsApi = {
     apiFetch(
       documentListResponseSchema,
       queryString.stringifyUrl({ url: "/api/files", query }, { skipNull: true }),
+      { signal },
+    ),
+
+  context: (
+    fileId: string,
+    query: { from: number; to: number },
+    signal?: AbortSignal,
+  ): Promise<TContextResponse> =>
+    apiFetch(
+      contextResponseSchema,
+      queryString.stringifyUrl({ url: `/api/files/${fileId}/context`, query }),
       { signal },
     ),
 
